@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestion Financière — Consult-Gherio</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, Timestamp, deleteDoc, doc, updateDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── FIREBASE CONFIG ──────────────────────────────────────────────────────────
+  // ⚙️ Replace with your own Firebase project config
+	const firebaseConfig = {
+		apiKey: "AIzaSyCYRK4wqehW0TNQij2Z-THgtUaf8bDHyNE",
+		authDomain: "suivi-financier-695df.firebaseapp.com",
+		projectId: "suivi-financier-695df",
+		storageBucket: "suivi-financier-695df.firebasestorage.app",
+		messagingSenderId: "724463087611",
+		appId: "1:724463087611:web:cc7eda70cec34304bee55e"
+	};
+
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+
+  // ── expose globals for non-module script ────────────────────────────────────
+  window._db          = db;
+  window._collection  = collection;
+  window._addDoc      = addDoc;
+  window._getDocs     = getDocs;
+  window._query       = query;
+  window._where       = where;
+  window._orderBy     = orderBy;
+  window._Timestamp   = Timestamp;
+  window._deleteDoc   = deleteDoc;
+  window._doc         = doc;
+  window._updateDoc   = updateDoc;
+  window._firebaseReady = true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<style>
+/* ── TOKENS ─────────────────────────────────────────────────────────────── */
+:root {
+  --sea-900: #062B36;
+  --sea-700: #0D5F73;
+  --sea-600: #1B8A9E;
+  --sea-400: #3AACBF;
+  --sea-100: #E0F4F7;
+  --sand:    #D4A574;
+  --sand-lt: #F5E6D3;
+  --sand-xl: #FBF5EE;
+  --navy:    #0A1628;
+  --white:   #FFFFFF;
+  --grey-50: #F8FAFB;
+  --grey-100:#EEF2F5;
+  --grey-300:#C8D2DA;
+  --grey-500:#7A8B96;
+  --grey-700:#3D4F5C;
+  --grey-900:#1A252F;
+
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+
+  --shadow-sm:  0 1px 4px rgba(10,22,40,.07);
+  --shadow-md:  0 4px 16px rgba(10,22,40,.10);
+  --shadow-lg:  0 12px 40px rgba(10,22,40,.14);
+  --shadow-sea: 0 0 0 3px rgba(27,138,158,.25);
+
+  --nav-w: 72px;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', monospace;
+}
+
+/* ── RESET ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--grey-50);
+  color: var(--grey-900);
+  min-height: 100vh;
+  display: flex;
+  overflow-x: hidden;
+}
+
+/* ── SIDEBAR NAV ─────────────────────────────────────────────────────────── */
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0;
+  width: var(--nav-w);
+  background: var(--navy);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px 0;
+  z-index: 100;
+  box-shadow: 4px 0 24px rgba(10,22,40,.18);
+}
+
+.sidebar-logo {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--sea-600), var(--sea-400));
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 32px;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(27,138,158,.4);
+  flex-shrink: 0;
+}
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0 10px; }
+
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 10px 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background .18s, transform .12s;
+  border: none; background: transparent;
+  color: rgba(255,255,255,.45);
+  gap: 4px;
+  position: relative;
+  font-family: var(--font-body);
+}
+.nav-item:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.75); transform: none; }
+.nav-item.active { background: rgba(27,138,158,.25); color: var(--sea-400); }
+.nav-item.active::before {
+  content: '';
+  position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 24px;
+  background: var(--sea-400);
+  border-radius: 0 2px 2px 0;
+}
+.nav-icon { font-size: 20px; line-height: 1; }
+.nav-label { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .6px; text-align: center; }
+
+.sidebar-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 10px; width: 100%; }
+
+/* ── MAIN CONTENT ────────────────────────────────────────────────────────── */
+.main {
+  margin-left: var(--nav-w);
+  flex: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+
+/* ── HEADER HERO ─────────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--sea-900) 0%, var(--sea-700) 60%, var(--sea-600) 100%);
+  padding: 40px 48px 0;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: '';
+  display: block;
+  height: 48px;
+  background: var(--grey-50);
+  clip-path: ellipse(55% 100% at 50% 100%);
+  margin-top: -1px;
+}
+
+.hero-inner {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 24px;
+  position: relative; z-index: 2;
+}
+.hero-wordmark {
+  font-family: var(--font-body);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--sand);
+  margin-bottom: 8px;
+}
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 32px; font-weight: 700;
+  color: var(--white);
+  line-height: 1.18;
+  max-width: 420px;
+}
+.hero-title em { color: var(--sea-400); font-style: normal; }
+.hero-subtitle {
+  margin-top: 10px;
+  font-size: 14px; color: rgba(255,255,255,.65); line-height: 1.6;
+  max-width: 380px;
+}
+
+.hero-kpis {
+  display: flex; gap: 16px; align-items: flex-start; margin-top: 4px;
+}
+.kpi-card {
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  text-align: center;
+  min-width: 110px;
+  backdrop-filter: blur(8px);
+}
+.kpi-value {
+  font-family: var(--font-mono);
+  font-size: 22px; font-weight: 500;
+  color: var(--white);
+}
+.kpi-value.positive { color: #5DD9B0; }
+.kpi-value.warning  { color: var(--sand); }
+.kpi-label { font-size: 10px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .8px; margin-top: 3px; }
+
+/* ── CONTENT AREA ────────────────────────────────────────────────────────── */
+.content { padding: 32px 48px 64px; flex: 1; }
+
+/* ── SECTION HEADER ──────────────────────────────────────────────────────── */
+.section-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+}
+.section-eyebrow {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--sea-600);
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 600; color: var(--grey-900);
+}
+.section-divider {
+  flex: 1; height: 1px; background: var(--grey-100);
+}
+
+/* ── TABS ────────────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex; gap: 4px;
+  background: var(--grey-100);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: 28px;
+  width: fit-content;
+}
+.tab-btn {
+  padding: 8px 20px;
+  border-radius: var(--radius-sm);
+  border: none; background: transparent;
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  color: var(--grey-500); cursor: pointer;
+  transition: all .18s;
+}
+.tab-btn.active {
+  background: var(--white);
+  color: var(--sea-700);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+/* ── FORM CARD ───────────────────────────────────────────────────────────── */
+.form-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--grey-100);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.form-card-header {
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid var(--grey-100);
+  display: flex; align-items: center; gap: 12px;
+}
+.form-card-icon {
+  width: 38px; height: 38px;
+  background: var(--sea-100);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.form-card-title { font-size: 15px; font-weight: 600; color: var(--grey-900); }
+.form-card-sub   { font-size: 12px; color: var(--grey-500); margin-top: 2px; }
+.form-card-body  { padding: 24px 28px; }
+
+/* ── FORM GRID ───────────────────────────────────────────────────────────── */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group.half { grid-column: span 2; }
+
+label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .7px; color: var(--grey-500);
+}
+input, select, textarea {
+  font-family: var(--font-body); font-size: 14px;
+  color: var(--grey-900);
+  background: var(--grey-50);
+  border: 1.5px solid var(--grey-100);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  transition: border-color .18s, box-shadow .18s, background .18s;
+  outline: none;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  background: var(--white);
+  border-color: var(--sea-600);
+  box-shadow: var(--shadow-sea);
+}
+select { cursor: pointer; }
+textarea { resize: vertical; min-height: 80px; }
+
+/* ── BUTTONS ─────────────────────────────────────────────────────────────── */
+.btn {
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  padding: 10px 22px;
+  border-radius: var(--radius-sm);
+  border: none; cursor: pointer;
+  transition: all .18s;
+  display: inline-flex; align-items: center; gap: 8px;
+  text-decoration: none;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--sea-700), var(--sea-600));
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(13,95,115,.3);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(13,95,115,.4);
+}
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: var(--grey-100);
+  color: var(--grey-700);
+}
+.btn-secondary:hover { background: var(--grey-300); }
+
+.btn-danger { background: #FEE2E2; color: #DC2626; }
+.btn-danger:hover { background: #FECACA; }
+
+.btn-sm { font-size: 12px; padding: 6px 14px; }
+
+.form-actions {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 28px 20px;
+  border-top: 1px solid var(--grey-100);
+  background: var(--grey-50);
+}
+
+/* ── STATUS BADGE ────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+.badge-green  { background: #D1FAE5; color: #065F46; }
+.badge-orange { background: #FEF3C7; color: #92400E; }
+.badge-red    { background: #FEE2E2; color: #991B1B; }
+.badge-grey   { background: var(--grey-100); color: var(--grey-500); }
+.badge-sea    { background: var(--sea-100); color: var(--sea-700); }
+
+/* ── TABLE ───────────────────────────────────────────────────────────────── */
+.table-wrapper {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--grey-100);
+  overflow: hidden;
+}
+.table-toolbar {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--grey-100);
+  display: flex; align-items: center; gap: 12px;
+}
+.table-search {
+  flex: 1;
+  padding: 8px 14px 8px 36px;
+  font-size: 13px;
+  background: var(--grey-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A8B96' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 12px center;
+}
+.table-search:focus { background-color: var(--white); }
+
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 12px 16px;
+  text-align: left; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .7px;
+  color: var(--grey-500);
+  background: var(--grey-50);
+  border-bottom: 1px solid var(--grey-100);
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--grey-50); transition: background .12s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--sea-100); }
+tbody td {
+  padding: 13px 16px;
+  font-size: 13px; color: var(--grey-700);
+  vertical-align: middle;
+}
+.td-amount {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+  color: var(--grey-900); text-align: right;
+}
+.td-amount.positive { color: #065F46; }
+.td-amount.negative { color: #991B1B; }
+
+/* ── SYNTHÈSE GRID ───────────────────────────────────────────────────────── */
+.synth-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.synth-card {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--grey-100);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  position: relative; overflow: hidden;
+}
+.synth-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.synth-card.sea::before  { background: linear-gradient(90deg, var(--sea-700), var(--sea-400)); }
+.synth-card.sand::before { background: linear-gradient(90deg, var(--sand), #E8C49A); }
+.synth-card.green::before{ background: linear-gradient(90deg, #10B981, #34D399); }
+.synth-card.red::before  { background: linear-gradient(90deg, #EF4444, #F87171); }
+
+.synth-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--grey-500); margin-bottom: 8px; }
+.synth-value { font-family: var(--font-mono); font-size: 28px; font-weight: 500; color: var(--grey-900); line-height: 1; }
+.synth-value.positive { color: #059669; }
+.synth-value.negative { color: #DC2626; }
+.synth-sub { font-size: 12px; color: var(--grey-500); margin-top: 6px; }
+
+/* ── MONTH TABLE (synthèse) ──────────────────────────────────────────────── */
+.month-row { display: flex; align-items: center; gap: 0; padding: 12px 24px; border-bottom: 1px solid var(--grey-50); transition: background .12s; }
+.month-row:hover { background: var(--sea-100); }
+.month-name { width: 120px; font-weight: 500; font-size: 14px; }
+.month-bar-wrap { flex: 1; height: 6px; background: var(--grey-100); border-radius: 99px; margin: 0 16px; overflow: hidden; }
+.month-bar { height: 100%; background: linear-gradient(90deg, var(--sea-700), var(--sea-400)); border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+.month-amount { font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: var(--grey-900); width: 110px; text-align: right; }
+.month-count { font-size: 11px; color: var(--grey-500); width: 60px; text-align: right; }
+
+/* ── TOAST ───────────────────────────────────────────────────────────────── */
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  background: var(--grey-900);
+  color: var(--white);
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  display: flex; align-items: center; gap: 10px;
+  animation: slideUp .3s ease;
+  max-width: 320px;
+}
+.toast.success { background: #064E3B; border-left: 3px solid #10B981; }
+.toast.error   { background: #7F1D1D; border-left: 3px solid #EF4444; }
+.toast.info    { background: var(--sea-900); border-left: 3px solid var(--sea-400); }
+@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── EMPTY STATE ─────────────────────────────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 60px 32px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.empty-icon { font-size: 48px; opacity: .3; }
+.empty-title { font-size: 16px; font-weight: 600; color: var(--grey-700); }
+.empty-sub { font-size: 13px; color: var(--grey-500); }
+
+/* ── LOADING ─────────────────────────────────────────────────────────────── */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--grey-100);
+  border-top-color: var(--sea-600);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── SECTION PANELS ──────────────────────────────────────────────────────── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── FIREBASE CONFIG BANNER ──────────────────────────────────────────────── */
+.config-banner {
+  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+  border: 1.5px solid #F59E0B;
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex; align-items: flex-start; gap: 12px;
+  font-size: 13px; color: #78350F;
+}
+.config-banner code {
+  font-family: var(--font-mono); font-size: 12px;
+  background: rgba(0,0,0,.08); padding: 1px 5px;
+  border-radius: 4px;
+}
+.config-banner strong { font-weight: 600; }
+
+/* ── RESPONSIVE ──────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .hero { padding: 28px 24px 0; }
+  .content { padding: 24px; }
+  .hero-inner { flex-direction: column; }
+  .hero-kpis { flex-wrap: wrap; }
+  .synth-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .main { margin-left: 0; }
+  .sidebar { display: none; }
+  .synth-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sidebar-logo">💼</div>
+  <div class="sidebar-nav">
+    <button class="nav-item active" onclick="showPanel('dashboard')" title="Tableau de bord">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Bord</span>
+    </button>
+    <button class="nav-item" onclick="showPanel('recettes')" title="Recettes">
+      <span class="nav-icon">💰</span>
+      <span class="nav-label">Recettes</span>
+    </button>
+    <button class="nav-item" onclick="showPanel('depenses')" title="Dépenses">
+      <span class="nav-icon">💳</span>
+      <span class="nav-label">Dépenses</span>
+    </button>
+    <button class="nav-item" onclick="showPanel('justifs')" title="Justificatifs">
+      <span class="nav-icon">📎</span>
+      <span class="nav-label">Justifs.</span>
+    </button>
+    <button class="nav-item" onclick="showPanel('synthese')" title="Synthèse">
+      <span class="nav-icon">📅</span>
+      <span class="nav-label">Synthèse</span>
+    </button>
+  </div>
+  <div class="sidebar-bottom">
+    <button class="nav-item" onclick="exportData()" title="Exporter">
+      <span class="nav-icon">⬇️</span>
+      <span class="nav-label">Export</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ── MAIN ────────────────────────────────────────────────────────────── -->
+<div class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-wordmark">Consult-Gherio · Gestion Financière IA</div>
+        <h1 class="hero-title">Pilotez votre <em>micro-entreprise</em> en temps réel</h1>
+        <p class="hero-subtitle">Recettes, dépenses, justificatifs — synchronisés, analysés, prêts à l'emploi. Propulsé par Firebase + IA.</p>
+      </div>
+      <div class="hero-kpis">
+        <div class="kpi-card">
+          <div class="kpi-value positive" id="kpi-ca">—</div>
+          <div class="kpi-label">CA ce mois</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value" id="kpi-dep">—</div>
+          <div class="kpi-label">Dépenses</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value warning" id="kpi-justif">—</div>
+          <div class="kpi-label">Justif. manquants</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- CONFIG BANNER (shown if Firebase not configured) -->
+    <div class="config-banner" id="configBanner" style="display:none">
+      <span style="font-size:20px">⚙️</span>
+      <div>
+        <strong>Configuration Firebase requise.</strong> Ouvrez ce fichier HTML, remplacez les valeurs <code>YOUR_*</code> dans la section <code>firebaseConfig</code> par les clés de votre projet Firebase.
+        <a href="https://console.firebase.google.com" target="_blank" style="color:#92400E;font-weight:600;margin-left:6px">→ Firebase Console</a>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
+    <div id="panel-dashboard" class="panel active">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Vue d'ensemble</div>
+          <div class="section-title">Tableau de bord</div>
+        </div>
+        <div class="section-divider"></div>
+      </div>
+
+      <div class="synth-grid" id="dashCards">
+        <div class="synth-card sea">
+          <div class="synth-label">Chiffre d'affaires annuel</div>
+          <div class="synth-value" id="d-ca-annual">…</div>
+          <div class="synth-sub">Total TTC facturé</div>
+        </div>
+        <div class="synth-card green">
+          <div class="synth-label">Encaissé (HT)</div>
+          <div class="synth-value positive" id="d-encaisse">…</div>
+          <div class="synth-sub">Paiements reçus</div>
+        </div>
+        <div class="synth-card sand">
+          <div class="synth-label">Dépenses suivies</div>
+          <div class="synth-value" id="d-depenses">…</div>
+          <div class="synth-sub">Non déductibles — suivi interne</div>
+        </div>
+        <div class="synth-card sea">
+          <div class="synth-label">Trésorerie nette</div>
+          <div class="synth-value" id="d-treso">…</div>
+          <div class="synth-sub">Encaissé − Dépenses</div>
+        </div>
+        <div class="synth-card red">
+          <div class="synth-label">Justificatifs manquants</div>
+          <div class="synth-value negative" id="d-missing">…</div>
+          <div class="synth-sub">À régulariser</div>
+        </div>
+        <div class="synth-card sand">
+          <div class="synth-label">Factures émises</div>
+          <div class="synth-value" id="d-nb-fac">…</div>
+          <div class="synth-sub">Total enregistrées</div>
+        </div>
+      </div>
+
+      <!-- Recent activity -->
+      <div class="table-wrapper">
+        <div class="table-toolbar">
+          <span style="font-weight:600;font-size:14px;color:var(--grey-700)">Activité récente</span>
+          <span class="badge badge-sea" id="recent-count">—</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th><th>Type</th><th>Désignation</th><th>Client / Fournisseur</th><th style="text-align:right">Montant</th><th>Statut</th>
+            </tr>
+          </thead>
+          <tbody id="recent-table-body">
+            <tr><td colspan="6"><div class="empty-state"><span class="spinner"></span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── RECETTES ────────────────────────────────────────────────────── -->
+    <div id="panel-recettes" class="panel">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Chiffre d'affaires</div>
+          <div class="section-title">Recettes</div>
+        </div>
+        <div class="section-divider"></div>
+        <button class="btn btn-primary btn-sm" onclick="toggleForm('form-recette')">
+          <span>+</span> Nouvelle recette
+        </button>
+      </div>
+
+      <!-- Form -->
+      <div class="form-card" id="form-recette" style="display:none">
+        <div class="form-card-header">
+          <div class="form-card-icon">💰</div>
+          <div>
+            <div class="form-card-title">Enregistrer une recette</div>
+            <div class="form-card-sub">Tous les champs marqués * sont obligatoires</div>
+          </div>
+        </div>
+        <div class="form-card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Date *</label>
+              <input type="date" id="r-date" required>
+            </div>
+            <div class="form-group">
+              <label>Client *</label>
+              <input type="text" id="r-client" placeholder="ex. SAS Dupont" required>
+            </div>
+            <div class="form-group half">
+              <label>Prestation / Objet *</label>
+              <input type="text" id="r-prestation" placeholder="ex. Consultation stratégie IA" required>
+            </div>
+            <div class="form-group">
+              <label>N° Facture *</label>
+              <input type="text" id="r-facture" placeholder="FAC-2025-001">
+            </div>
+            <div class="form-group">
+              <label>Montant HT (€) *</label>
+              <input type="number" id="r-ht" step="0.01" min="0" placeholder="1500.00" required>
+            </div>
+            <div class="form-group">
+              <label>TVA (€)</label>
+              <input type="number" id="r-tva" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Montant TTC (€)</label>
+              <input type="number" id="r-ttc" step="0.01" min="0" placeholder="Calculé auto">
+            </div>
+            <div class="form-group">
+              <label>Mode de paiement</label>
+              <select id="r-mode">
+                <option value="">— Sélectionner —</option>
+                <option>Virement</option><option>Chèque</option>
+                <option>Carte bancaire</option><option>Prélèvement</option>
+                <option>Espèces</option><option>PayPal</option><option>Stripe</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Encaissé ?</label>
+              <select id="r-enc">
+                <option value="">— Sélectionner —</option>
+                <option>Oui</option><option>Non</option><option>En attente</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label>Commentaire</label>
+              <textarea id="r-comment" placeholder="Notes internes, conditions, etc."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveRecette()">💾 Enregistrer</button>
+          <button class="btn btn-secondary" onclick="toggleForm('form-recette')">Annuler</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <div class="table-toolbar">
+          <input class="table-search" type="search" placeholder="Rechercher..." oninput="filterTable('recettes-table-body', this.value)">
+          <span class="badge badge-sea" id="recettes-count">—</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th><th>Client</th><th>Prestation</th><th>Facture</th>
+              <th style="text-align:right">Montant HT</th><th style="text-align:right">TTC</th>
+              <th>Paiement</th><th>Encaissé</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recettes-table-body">
+            <tr><td colspan="9"><div class="empty-state"><span class="spinner"></span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── DÉPENSES ────────────────────────────────────────────────────── -->
+    <div id="panel-depenses" class="panel">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Suivi interne</div>
+          <div class="section-title">Dépenses</div>
+        </div>
+        <div class="section-divider"></div>
+        <button class="btn btn-primary btn-sm" onclick="toggleForm('form-depense')">
+          <span>+</span> Nouvelle dépense
+        </button>
+      </div>
+
+      <!-- Warning -->
+      <div style="background:var(--sand-lt);border:1.5px solid var(--sand);border-radius:var(--radius-md);padding:12px 18px;margin-bottom:20px;font-size:13px;color:#78350F">
+        ⚠️ <strong>Rappel :</strong> En micro-entreprise, les dépenses ne se déduisent pas du CA fiscal. Ce suivi est destiné à votre gestion interne et à votre trésorerie.
+      </div>
+
+      <!-- Form -->
+      <div class="form-card" id="form-depense" style="display:none">
+        <div class="form-card-header">
+          <div class="form-card-icon">💳</div>
+          <div>
+            <div class="form-card-title">Enregistrer une dépense</div>
+            <div class="form-card-sub">Renseignez les détails et le justificatif associé</div>
+          </div>
+        </div>
+        <div class="form-card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Date *</label>
+              <input type="date" id="d-date" required>
+            </div>
+            <div class="form-group">
+              <label>Catégorie *</label>
+              <select id="d-cat" required>
+                <option value="">— Sélectionner —</option>
+                <option>Logiciels & abonnements</option>
+                <option>Déplacements</option>
+                <option>Équipement informatique</option>
+                <option>Formation & développement</option>
+                <option>Marketing & communication</option>
+                <option>Services professionnels</option>
+                <option>Frais bancaires</option>
+                <option>Bureau & fournitures</option>
+                <option>Restauration professionnelle</option>
+                <option>Autres</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Sous-catégorie</label>
+              <input type="text" id="d-subcat" placeholder="ex. SaaS / Cloud">
+            </div>
+            <div class="form-group">
+              <label>Fournisseur *</label>
+              <input type="text" id="d-fournisseur" placeholder="ex. Adobe" required>
+            </div>
+            <div class="form-group half">
+              <label>Description *</label>
+              <input type="text" id="d-desc" placeholder="ex. Abonnement Creative Cloud" required>
+            </div>
+            <div class="form-group">
+              <label>Montant TTC (€) *</label>
+              <input type="number" id="d-ttc" step="0.01" min="0" placeholder="29.99" required>
+            </div>
+            <div class="form-group">
+              <label>TVA estimée (€)</label>
+              <input type="number" id="d-tva" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Mode de paiement</label>
+              <select id="d-mode">
+                <option value="">— Sélectionner —</option>
+                <option>Virement</option><option>Chèque</option>
+                <option>Carte bancaire</option><option>Prélèvement</option>
+                <option>Espèces</option><option>PayPal</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>N° Justificatif</label>
+              <input type="text" id="d-just" placeholder="JUST-001">
+            </div>
+            <div class="form-group">
+              <label>Projet / Client</label>
+              <input type="text" id="d-projet" placeholder="ex. Général">
+            </div>
+            <div class="form-group">
+              <label>Statut justificatif</label>
+              <select id="d-statut">
+                <option value="">— Sélectionner —</option>
+                <option>✅ Reçu</option>
+                <option>⚠️ Manquant</option>
+                <option>🔄 En cours</option>
+                <option>📤 Demandé</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>⚠️ À vérifier ?</label>
+              <select id="d-verif">
+                <option value="Non">Non</option>
+                <option value="Oui">Oui — nécessite contrôle</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label>Commentaire</label>
+              <textarea id="d-comment" placeholder="Notes internes..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveDepense()">💾 Enregistrer</button>
+          <button class="btn btn-secondary" onclick="toggleForm('form-depense')">Annuler</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <div class="table-toolbar">
+          <input class="table-search" type="search" placeholder="Rechercher..." oninput="filterTable('depenses-table-body', this.value)">
+          <span class="badge badge-orange" id="depenses-count">—</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th><th>Catégorie</th><th>Fournisseur</th><th>Description</th>
+              <th style="text-align:right">TTC</th><th>Mode</th>
+              <th>N° Justif.</th><th>Statut</th><th>Vérif.</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="depenses-table-body">
+            <tr><td colspan="10"><div class="empty-state"><span class="spinner"></span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── JUSTIFICATIFS ───────────────────────────────────────────────── -->
+    <div id="panel-justifs" class="panel">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Preuves documentaires</div>
+          <div class="section-title">Justificatifs</div>
+        </div>
+        <div class="section-divider"></div>
+        <button class="btn btn-primary btn-sm" onclick="toggleForm('form-justif')">
+          <span>+</span> Nouveau justificatif
+        </button>
+      </div>
+
+      <div class="form-card" id="form-justif" style="display:none">
+        <div class="form-card-header">
+          <div class="form-card-icon">📎</div>
+          <div>
+            <div class="form-card-title">Enregistrer un justificatif</div>
+            <div class="form-card-sub">Liez ce document à une dépense existante</div>
+          </div>
+        </div>
+        <div class="form-card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>N° Justificatif *</label>
+              <input type="text" id="j-num" placeholder="JUST-001" required>
+            </div>
+            <div class="form-group">
+              <label>Date *</label>
+              <input type="date" id="j-date" required>
+            </div>
+            <div class="form-group">
+              <label>Type *</label>
+              <select id="j-type" required>
+                <option value="">— Sélectionner —</option>
+                <option>Facture fournisseur</option>
+                <option>Ticket de caisse</option>
+                <option>Billet / ticket transport</option>
+                <option>Note de frais</option>
+                <option>Relevé bancaire</option>
+                <option>Contrat</option><option>Reçu</option><option>Autre</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Fournisseur / Émetteur *</label>
+              <input type="text" id="j-fourn" placeholder="ex. Adobe Inc." required>
+            </div>
+            <div class="form-group">
+              <label>Montant (€)</label>
+              <input type="number" id="j-montant" step="0.01" min="0" placeholder="29.99">
+            </div>
+            <div class="form-group">
+              <label>Lié à N° Dépense</label>
+              <input type="text" id="j-depense" placeholder="ex. Dépense ligne 3">
+            </div>
+            <div class="form-group">
+              <label>Format</label>
+              <select id="j-format">
+                <option value="">— Sélectionner —</option>
+                <option>PDF</option><option>Photo / JPG</option>
+                <option>PNG</option><option>Papier scanné</option><option>À obtenir</option>
+              </select>
+            </div>
+            <div class="form-group half">
+              <label>Emplacement / Nom fichier</label>
+              <input type="text" id="j-fichier" placeholder="2025/01_Adobe_Creative_Cloud.pdf">
+            </div>
+            <div class="form-group">
+              <label>Statut</label>
+              <select id="j-statut">
+                <option value="">— Sélectionner —</option>
+                <option>✅ Classé</option>
+                <option>⚠️ En attente</option>
+                <option>❌ Introuvable</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveJustif()">💾 Enregistrer</button>
+          <button class="btn btn-secondary" onclick="toggleForm('form-justif')">Annuler</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <div class="table-toolbar">
+          <input class="table-search" type="search" placeholder="Rechercher..." oninput="filterTable('justifs-table-body', this.value)">
+          <span class="badge badge-sea" id="justifs-count">—</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>N° Justif.</th><th>Date</th><th>Type</th>
+              <th>Fournisseur</th><th style="text-align:right">Montant</th>
+              <th>Lié à</th><th>Format</th><th>Emplacement</th><th>Statut</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="justifs-table-body">
+            <tr><td colspan="10"><div class="empty-state"><span class="spinner"></span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── SYNTHÈSE ────────────────────────────────────────────────────── -->
+    <div id="panel-synthese" class="panel">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Récapitulatif automatique</div>
+          <div class="section-title">Synthèse mensuelle</div>
+        </div>
+        <div class="section-divider"></div>
+      </div>
+
+      <div class="synth-grid" style="grid-template-columns: repeat(4,1fr); margin-bottom:28px">
+        <div class="synth-card sea">
+          <div class="synth-label">CA annuel TTC</div>
+          <div class="synth-value" id="s-ca">…</div>
+        </div>
+        <div class="synth-card green">
+          <div class="synth-label">Encaissé HT</div>
+          <div class="synth-value positive" id="s-enc">…</div>
+        </div>
+        <div class="synth-card sand">
+          <div class="synth-label">Dépenses totales</div>
+          <div class="synth-value" id="s-dep">…</div>
+        </div>
+        <div class="synth-card green">
+          <div class="synth-label">Trésorerie nette</div>
+          <div class="synth-value positive" id="s-treso">…</div>
+        </div>
+      </div>
+
+      <!-- Monthly bars -->
+      <div class="table-wrapper">
+        <div class="table-toolbar">
+          <span style="font-weight:600;font-size:14px;color:var(--grey-700)">Évolution mensuelle — CA TTC</span>
+        </div>
+        <div id="monthly-bars" style="padding:8px 0 12px"></div>
+      </div>
+
+      <!-- Catégories -->
+      <div class="table-wrapper" style="margin-top:20px">
+        <div class="table-toolbar">
+          <span style="font-weight:600;font-size:14px;color:var(--grey-700)">Dépenses par catégorie</span>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Catégorie</th><th style="text-align:right">Total (€)</th><th style="text-align:right">% du total</th></tr>
+          </thead>
+          <tbody id="cat-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+// ── UTILS ──────────────────────────────────────────────────────────────────
+const fmt = (n) => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR'}).format(n||0);
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+
+function toast(msg, type='info', duration=3500) {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = {success:'✅', error:'❌', info:'ℹ️'};
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+function toggleForm(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function filterTable(tbodyId, q) {
+  const rows = document.getElementById(tbodyId).querySelectorAll('tr[data-searchable]');
+  const lq = q.toLowerCase();
+  rows.forEach(r => {
+    r.style.display = r.getAttribute('data-searchable').toLowerCase().includes(lq) ? '' : 'none';
+  });
+}
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const btns = document.querySelectorAll('.nav-item');
+  const order = ['dashboard','recettes','depenses','justifs','synthese'];
+  const idx = order.indexOf(name);
+  if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
+  if (name === 'synthese') buildSynthese();
+}
+
+function encBadge(v) {
+  if (v === 'Oui') return '<span class="badge badge-green">✅ Oui</span>';
+  if (v === 'Non') return '<span class="badge badge-red">Non</span>';
+  return '<span class="badge badge-orange">⏳ Attente</span>';
+}
+function statutBadge(v) {
+  if (!v) return '—';
+  if (v.includes('Reçu') || v.includes('Classé')) return `<span class="badge badge-green">${v}</span>`;
+  if (v.includes('Manquant') || v.includes('Attente') || v.includes('Introuvable')) return `<span class="badge badge-orange">${v}</span>`;
+  return `<span class="badge badge-grey">${v}</span>`;
+}
+function verifBadge(v) {
+  return v === 'Oui'
+    ? '<span class="badge badge-orange">⚠️ Oui</span>'
+    : '<span class="badge badge-green">Non</span>';
+}
+
+// ── FIREBASE CRUD ──────────────────────────────────────────────────────────
+let _ready = false;
+document.addEventListener('firebase-ready', () => {
+  _ready = true;
+  loadAll();
+});
+
+// Check if config is placeholder
+setTimeout(() => {
+  if (!_ready) document.getElementById('configBanner').style.display = 'flex';
+}, 2000);
+
+// In-memory cache
+let DATA = { recettes: [], depenses: [], justifs: [] };
+
+async function loadAll() {
+  await Promise.all([loadRecettes(), loadDepenses(), loadJustifs()]);
+  buildDashboard();
+}
+
+async function loadRecettes() {
+  const snap = await window._getDocs(
+    window._query(window._collection(window._db, 'recettes'), window._orderBy('date', 'desc'))
+  );
+  DATA.recettes = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  renderRecettes();
+}
+async function loadDepenses() {
+  const snap = await window._getDocs(
+    window._query(window._collection(window._db, 'depenses'), window._orderBy('date', 'desc'))
+  );
+  DATA.depenses = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  renderDepenses();
+}
+async function loadJustifs() {
+  const snap = await window._getDocs(
+    window._query(window._collection(window._db, 'justifs'), window._orderBy('date', 'desc'))
+  );
+  DATA.justifs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  renderJustifs();
+}
+
+// ── SAVE ───────────────────────────────────────────────────────────────────
+async function saveRecette() {
+  const ht = parseFloat(document.getElementById('r-ht').value) || 0;
+  const tva= parseFloat(document.getElementById('r-tva').value) || 0;
+  const ttcInput = document.getElementById('r-ttc').value;
+  const ttc = ttcInput ? parseFloat(ttcInput) : ht + tva;
+
+  const data = {
+    date:       document.getElementById('r-date').value,
+    client:     document.getElementById('r-client').value,
+    prestation: document.getElementById('r-prestation').value,
+    facture:    document.getElementById('r-facture').value,
+    ht, tva, ttc,
+    mode:       document.getElementById('r-mode').value,
+    encaisse:   document.getElementById('r-enc').value,
+    commentaire:document.getElementById('r-comment').value,
+    createdAt:  window._Timestamp.now()
+  };
+  if (!data.date || !data.client || !data.prestation) { toast('Remplissez les champs obligatoires *', 'error'); return; }
+  try {
+    await window._addDoc(window._collection(window._db, 'recettes'), data);
+    toast('Recette enregistrée ✓', 'success');
+    document.getElementById('form-recette').style.display = 'none';
+    await loadRecettes(); buildDashboard();
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+}
+
+async function saveDepense() {
+  const data = {
+    date:       document.getElementById('d-date').value,
+    categorie:  document.getElementById('d-cat').value,
+    souscat:    document.getElementById('d-subcat').value,
+    fournisseur:document.getElementById('d-fournisseur').value,
+    description:document.getElementById('d-desc').value,
+    ttc:        parseFloat(document.getElementById('d-ttc').value) || 0,
+    tva:        parseFloat(document.getElementById('d-tva').value) || 0,
+    mode:       document.getElementById('d-mode').value,
+    nojustif:   document.getElementById('d-just').value,
+    projet:     document.getElementById('d-projet').value,
+    statut:     document.getElementById('d-statut').value,
+    averifier:  document.getElementById('d-verif').value,
+    commentaire:document.getElementById('d-comment').value,
+    createdAt:  window._Timestamp.now()
+  };
+  if (!data.date || !data.categorie || !data.fournisseur) { toast('Remplissez les champs obligatoires *', 'error'); return; }
+  try {
+    await window._addDoc(window._collection(window._db, 'depenses'), data);
+    toast('Dépense enregistrée ✓', 'success');
+    document.getElementById('form-depense').style.display = 'none';
+    await loadDepenses(); buildDashboard();
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+}
+
+async function saveJustif() {
+  const data = {
+    numero:   document.getElementById('j-num').value,
+    date:     document.getElementById('j-date').value,
+    type:     document.getElementById('j-type').value,
+    fourn:    document.getElementById('j-fourn').value,
+    montant:  parseFloat(document.getElementById('j-montant').value) || 0,
+    depense:  document.getElementById('j-depense').value,
+    format:   document.getElementById('j-format').value,
+    fichier:  document.getElementById('j-fichier').value,
+    statut:   document.getElementById('j-statut').value,
+    createdAt:window._Timestamp.now()
+  };
+  if (!data.numero || !data.date || !data.fourn) { toast('Remplissez les champs obligatoires *', 'error'); return; }
+  try {
+    await window._addDoc(window._collection(window._db, 'justifs'), data);
+    toast('Justificatif enregistré ✓', 'success');
+    document.getElementById('form-justif').style.display = 'none';
+    await loadJustifs(); buildDashboard();
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+}
+
+// ── DELETE ──────────────────────────────────────────────────────────────────
+async function deleteRecord(col, id, reloadFn) {
+  if (!confirm('Supprimer cet enregistrement ?')) return;
+  try {
+    await window._deleteDoc(window._doc(window._db, col, id));
+    toast('Supprimé ✓', 'success');
+    await reloadFn(); buildDashboard();
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+}
+
+// ── RENDER ──────────────────────────────────────────────────────────────────
+function renderRecettes() {
+  const tbody = document.getElementById('recettes-table-body');
+  document.getElementById('recettes-count').textContent = DATA.recettes.length + ' entrées';
+  if (!DATA.recettes.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💰</div><div class="empty-title">Aucune recette enregistrée</div><div class="empty-sub">Cliquez sur "+ Nouvelle recette" pour commencer</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = DATA.recettes.map(r => `
+    <tr data-searchable="${r.client} ${r.prestation} ${r.facture} ${r.date}">
+      <td>${fmtDate(r.date)}</td>
+      <td><strong>${r.client||'—'}</strong></td>
+      <td style="color:var(--grey-500);font-size:12px">${r.prestation||'—'}</td>
+      <td><span class="badge badge-sea">${r.facture||'—'}</span></td>
+      <td class="td-amount positive">${fmt(r.ht)}</td>
+      <td class="td-amount">${fmt(r.ttc)}</td>
+      <td style="font-size:12px">${r.mode||'—'}</td>
+      <td>${encBadge(r.encaisse)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('recettes','${r.id}',loadRecettes)">🗑</button></td>
+    </tr>`).join('');
+}
+
+function renderDepenses() {
+  const tbody = document.getElementById('depenses-table-body');
+  document.getElementById('depenses-count').textContent = DATA.depenses.length + ' entrées';
+  if (!DATA.depenses.length) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">💳</div><div class="empty-title">Aucune dépense enregistrée</div><div class="empty-sub">Cliquez sur "+ Nouvelle dépense" pour commencer</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = DATA.depenses.map(d => `
+    <tr data-searchable="${d.categorie} ${d.fournisseur} ${d.description} ${d.date}">
+      <td>${fmtDate(d.date)}</td>
+      <td><span class="badge badge-sea" style="font-size:10px">${d.categorie||'—'}</span></td>
+      <td><strong>${d.fournisseur||'—'}</strong></td>
+      <td style="color:var(--grey-500);font-size:12px">${d.description||'—'}</td>
+      <td class="td-amount negative">${fmt(d.ttc)}</td>
+      <td style="font-size:12px">${d.mode||'—'}</td>
+      <td style="font-size:12px;font-family:var(--font-mono)">${d.nojustif||'—'}</td>
+      <td>${statutBadge(d.statut)}</td>
+      <td>${verifBadge(d.averifier)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('depenses','${d.id}',loadDepenses)">🗑</button></td>
+    </tr>`).join('');
+}
+
+function renderJustifs() {
+  const tbody = document.getElementById('justifs-table-body');
+  document.getElementById('justifs-count').textContent = DATA.justifs.length + ' entrées';
+  if (!DATA.justifs.length) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">📎</div><div class="empty-title">Aucun justificatif enregistré</div><div class="empty-sub">Cliquez sur "+ Nouveau justificatif"</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = DATA.justifs.map(j => `
+    <tr data-searchable="${j.numero} ${j.fourn} ${j.type} ${j.date}">
+      <td><span class="badge badge-sea" style="font-family:var(--font-mono)">${j.numero||'—'}</span></td>
+      <td>${fmtDate(j.date)}</td>
+      <td style="font-size:12px">${j.type||'—'}</td>
+      <td><strong>${j.fourn||'—'}</strong></td>
+      <td class="td-amount">${fmt(j.montant)}</td>
+      <td style="font-size:12px">${j.depense||'—'}</td>
+      <td style="font-size:12px">${j.format||'—'}</td>
+      <td style="font-size:11px;color:var(--grey-500);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${j.fichier||''}">${j.fichier||'—'}</td>
+      <td>${statutBadge(j.statut)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('justifs','${j.id}',loadJustifs)">🗑</button></td>
+    </tr>`).join('');
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+function buildDashboard() {
+  const caAnnual  = DATA.recettes.reduce((s,r) => s + (r.ttc||0), 0);
+  const encaisse  = DATA.recettes.filter(r => r.encaisse === 'Oui').reduce((s,r) => s + (r.ht||0), 0);
+  const depTotal  = DATA.depenses.reduce((s,d) => s + (d.ttc||0), 0);
+  const treso     = encaisse - depTotal;
+  const missing   = DATA.depenses.filter(d => d.statut && d.statut.includes('Manquant')).length
+                  + DATA.justifs.filter(j => j.statut && (j.statut.includes('Attente') || j.statut.includes('Introuvable'))).length;
+
+  // KPI hero
+  const now = new Date(); const curMonth = now.getMonth();
+  const caMois = DATA.recettes
+    .filter(r => r.date && new Date(r.date).getMonth() === curMonth)
+    .reduce((s,r) => s + (r.ttc||0), 0);
+  const depMois = DATA.depenses
+    .filter(d => d.date && new Date(d.date).getMonth() === curMonth)
+    .reduce((s,d) => s + (d.ttc||0), 0);
+
+  document.getElementById('kpi-ca').textContent    = fmt(caMois);
+  document.getElementById('kpi-dep').textContent   = fmt(depMois);
+  document.getElementById('kpi-justif').textContent= missing;
+
+  // Cards
+  document.getElementById('d-ca-annual').textContent = fmt(caAnnual);
+  document.getElementById('d-encaisse').textContent  = fmt(encaisse);
+  document.getElementById('d-depenses').textContent  = fmt(depTotal);
+  const tresoEl = document.getElementById('d-treso');
+  tresoEl.textContent = fmt(treso);
+  tresoEl.className   = 'synth-value ' + (treso >= 0 ? 'positive' : 'negative');
+  document.getElementById('d-missing').textContent = missing;
+  document.getElementById('d-nb-fac').textContent  = DATA.recettes.length;
+
+  // Recent activity
+  const recent = [
+    ...DATA.recettes.slice(0,5).map(r => ({...r, _type:'recette'})),
+    ...DATA.depenses.slice(0,5).map(d => ({...d, _type:'depense'}))
+  ].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,8);
+
+  document.getElementById('recent-count').textContent = recent.length + ' entrées récentes';
+  const rb = document.getElementById('recent-table-body');
+  if (!recent.length) {
+    rb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Aucune activité</div><div class="empty-sub">Commencez par saisir une recette ou une dépense</div></div></td></tr>`;
+    return;
+  }
+  rb.innerHTML = recent.map(r => {
+    const isRec = r._type === 'recette';
+    const label = isRec ? `<span class="badge badge-green">Recette</span>` : `<span class="badge badge-orange">Dépense</span>`;
+    const name  = isRec ? r.client : r.fournisseur;
+    const desc  = isRec ? r.prestation : r.description;
+    const amt   = isRec ? r.ttc : r.ttc;
+    const amtClass = isRec ? 'positive' : 'negative';
+    const sign  = isRec ? '+' : '−';
+    const stat  = isRec ? encBadge(r.encaisse) : statutBadge(r.statut);
+    return `<tr>
+      <td>${fmtDate(r.date)}</td><td>${label}</td>
+      <td style="font-size:12px;color:var(--grey-500)">${desc||'—'}</td>
+      <td><strong>${name||'—'}</strong></td>
+      <td class="td-amount ${amtClass}">${sign} ${fmt(amt)}</td>
+      <td>${stat}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── SYNTHÈSE ────────────────────────────────────────────────────────────────
+function buildSynthese() {
+  const caAnnual = DATA.recettes.reduce((s,r) => s + (r.ttc||0), 0);
+  const encAnnual= DATA.recettes.filter(r=>r.encaisse==='Oui').reduce((s,r) => s + (r.ht||0), 0);
+  const depAnnual= DATA.depenses.reduce((s,d) => s + (d.ttc||0), 0);
+  const treso    = encAnnual - depAnnual;
+
+  document.getElementById('s-ca').textContent   = fmt(caAnnual);
+  document.getElementById('s-enc').textContent  = fmt(encAnnual);
+  document.getElementById('s-dep').textContent  = fmt(depAnnual);
+  const te = document.getElementById('s-treso');
+  te.textContent = fmt(treso);
+  te.className   = 'synth-value ' + (treso >= 0 ? 'positive' : 'negative');
+
+  // Monthly bars
+  const months = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                  'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const monthlyCA = Array(12).fill(0);
+  DATA.recettes.forEach(r => {
+    if (r.date) { const m = new Date(r.date).getMonth(); monthlyCA[m] += r.ttc||0; }
+  });
+  const maxCA = Math.max(...monthlyCA, 1);
+  const bars = document.getElementById('monthly-bars');
+  bars.innerHTML = months.map((m,i) => {
+    const pct = ((monthlyCA[i] / maxCA) * 100).toFixed(1);
+    const nb  = DATA.recettes.filter(r => r.date && new Date(r.date).getMonth() === i).length;
+    const isMax = monthlyCA[i] === maxCA && maxCA > 0;
+    return `<div class="month-row">
+      <div class="month-name">${m} ${isMax ? '⭐' : ''}</div>
+      <div class="month-bar-wrap"><div class="month-bar" style="width:${pct}%"></div></div>
+      <div class="month-amount">${monthlyCA[i] > 0 ? fmt(monthlyCA[i]) : '—'}</div>
+      <div class="month-count">${nb > 0 ? nb + ' fac.' : ''}</div>
+    </div>`;
+  }).join('');
+
+  // Categories
+  const cats = {};
+  DATA.depenses.forEach(d => {
+    if (d.categorie) cats[d.categorie] = (cats[d.categorie]||0) + (d.ttc||0);
+  });
+  const total = Object.values(cats).reduce((a,b) => a+b, 0) || 1;
+  const sorted = Object.entries(cats).sort((a,b) => b[1]-a[1]);
+  const cb = document.getElementById('cat-table-body');
+  if (!sorted.length) {
+    cb.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--grey-500)">Aucune dépense enregistrée</td></tr>`;
+    return;
+  }
+  cb.innerHTML = sorted.map(([cat, val]) => `
+    <tr>
+      <td><span class="badge badge-sea">${cat}</span></td>
+      <td class="td-amount">${fmt(val)}</td>
+      <td class="td-amount" style="color:var(--grey-500)">${((val/total)*100).toFixed(1)} %</td>
+    </tr>`).join('');
+}
+
+// ── EXPORT ──────────────────────────────────────────────────────────────────
+function exportData() {
+  const rows = [
+    ['=== RECETTES ==='],
+    ['Date','Client','Prestation','Facture','HT','TVA','TTC','Mode','Encaissé','Commentaire'],
+    ...DATA.recettes.map(r => [r.date,r.client,r.prestation,r.facture,r.ht,r.tva,r.ttc,r.mode,r.encaisse,r.commentaire]),
+    [],['=== DÉPENSES ==='],
+    ['Date','Catégorie','Fournisseur','Description','TTC','TVA','Mode','N°Justif','Statut','À vérifier'],
+    ...DATA.depenses.map(d => [d.date,d.categorie,d.fournisseur,d.description,d.ttc,d.tva,d.mode,d.nojustif,d.statut,d.averifier]),
+    [],['=== JUSTIFICATIFS ==='],
+    ['N°','Date','Type','Fournisseur','Montant','Lié à','Format','Fichier','Statut'],
+    ...DATA.justifs.map(j => [j.numero,j.date,j.type,j.fourn,j.montant,j.depense,j.format,j.fichier,j.statut])
+  ];
+  const csv = rows.map(r => r.join('\t')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/tab-separated-values;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  a.download = `Gestion_MicroEntreprise_${new Date().toISOString().slice(0,10)}.tsv`;
+  a.click();
+  toast('Export téléchargé ✓', 'success');
+}
+
+// Set today's date in all date inputs on load
+window.addEventListener('load', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.querySelectorAll('input[type="date"]').forEach(i => i.value = today);
+});
+
+// Auto-calculate TTC when HT or TVA changes
+['r-ht','r-tva'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const ht  = parseFloat(document.getElementById('r-ht').value)  || 0;
+    const tva = parseFloat(document.getElementById('r-tva').value) || 0;
+    document.getElementById('r-ttc').value = (ht + tva).toFixed(2);
+  });
+});
+</script>
+</body>
+</html>
