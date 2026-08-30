@@ -432,7 +432,24 @@ tbody td{padding:11px 14px;font-size:13px;color:var(--grey-700);vertical-align:m
 // ─── IMPORTANT: replace with your actual Firebase project ID ─────────────
 const PROJECT_ID = "suivi-financier-695df";
 // ─────────────────────────────────────────────────────────────────────────
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCYRK4wqehW0TNQij2Z-THgtUaf8bDHyNE",
+  authDomain: "suivi-financier-695df.firebaseapp.com",
+  projectId: "suivi-financier-695df",
+  storageBucket: "suivi-financier-695df.firebasestorage.app",
+  messagingSenderId: "724463087611",
+  appId: "1:724463087611:web:cc7eda70cec34304bee55e"
+};
+// ─────────────────────────────────────────────────────────────────────────
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+  
 import { initializeApp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, collection, addDoc, getDocs,
