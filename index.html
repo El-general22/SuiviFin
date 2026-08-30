@@ -4,1455 +4,465 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion Financière — Consult-Gherio</title>
-
-<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, Timestamp, deleteDoc, doc, updateDoc }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  // ── FIREBASE CONFIG ──────────────────────────────────────────────────────────
-  // ⚙️ Replace with your own Firebase project config
-	const firebaseConfig = {
-		apiKey: "AIzaSyCYRK4wqehW0TNQij2Z-THgtUaf8bDHyNE",
-		authDomain: "suivi-financier-695df.firebaseapp.com",
-		projectId: "suivi-financier-695df",
-		storageBucket: "suivi-financier-695df.firebasestorage.app",
-		messagingSenderId: "724463087611",
-		appId: "1:724463087611:web:cc7eda70cec34304bee55e"
-	};
-
-  const app  = initializeApp(firebaseConfig);
-  const db   = getFirestore(app);
-
-  // ── expose globals for non-module script ────────────────────────────────────
-  window._db          = db;
-  window._collection  = collection;
-  window._addDoc      = addDoc;
-  window._getDocs     = getDocs;
-  window._query       = query;
-  window._where       = where;
-  window._orderBy     = orderBy;
-  window._Timestamp   = Timestamp;
-  window._deleteDoc   = deleteDoc;
-  window._doc         = doc;
-  window._updateDoc   = updateDoc;
-  window._firebaseReady = true;
-  document.dispatchEvent(new Event('firebase-ready'));
-</script>
-
 <style>
-/* ── TOKENS ─────────────────────────────────────────────────────────────── */
+/* ── DESIGN TOKENS ──────────────────────────────────────────────────────── */
 :root {
-  --sea-900: #062B36;
-  --sea-700: #0D5F73;
-  --sea-600: #1B8A9E;
-  --sea-400: #3AACBF;
-  --sea-100: #E0F4F7;
-  --sand:    #D4A574;
-  --sand-lt: #F5E6D3;
-  --sand-xl: #FBF5EE;
-  --navy:    #0A1628;
-  --white:   #FFFFFF;
-  --grey-50: #F8FAFB;
-  --grey-100:#EEF2F5;
-  --grey-300:#C8D2DA;
-  --grey-500:#7A8B96;
-  --grey-700:#3D4F5C;
-  --grey-900:#1A252F;
+  --sea-900:#062B36;--sea-700:#0D5F73;--sea-600:#1B8A9E;--sea-400:#3AACBF;--sea-100:#E0F4F7;
+  --sand:#D4A574;--sand-lt:#F5E6D3;--navy:#0A1628;
+  --white:#FFFFFF;--grey-50:#F8FAFB;--grey-100:#EEF2F5;--grey-300:#C8D2DA;
+  --grey-500:#7A8B96;--grey-700:#3D4F5C;--grey-900:#1A252F;
+  --color-error:#DC2626;
+  --r-sm:6px;--r-md:12px;--r-lg:20px;
+  --sh-sm:0 1px 4px rgba(10,22,40,.07);--sh-md:0 4px 16px rgba(10,22,40,.10);--sh-lg:0 12px 40px rgba(10,22,40,.18);
+  --sh-sea:0 0 0 3px rgba(27,138,158,.25);
+  --nav-w:72px;
+  --f-display:'Playfair Display',Georgia,serif;
+  --f-body:'Inter',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:var(--f-body);background:var(--grey-50);color:var(--grey-900);min-height:100vh;display:flex;overflow-x:hidden}
 
-  --radius-sm:  6px;
-  --radius-md:  12px;
-  --radius-lg:  20px;
-  --radius-xl:  28px;
+/* ── UTIL ───────────────────────────────────────────────────────────────── */
+.hidden{display:none!important}
+.mono{font-family:var(--f-mono)}
+.sm{font-size:11px}
+.grey-sm{color:var(--grey-500);font-size:12px}
+.truncate{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.actions-cell{white-space:nowrap;display:flex;gap:4px;align-items:center}
 
-  --shadow-sm:  0 1px 4px rgba(10,22,40,.07);
-  --shadow-md:  0 4px 16px rgba(10,22,40,.10);
-  --shadow-lg:  0 12px 40px rgba(10,22,40,.14);
-  --shadow-sea: 0 0 0 3px rgba(27,138,158,.25);
+/* ── LOADING ────────────────────────────────────────────────────────────── */
+#loading-screen{position:fixed;inset:0;z-index:9998;background:linear-gradient(135deg,var(--sea-900),var(--navy));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading-logo{font-size:40px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.95)}50%{opacity:1;transform:scale(1)}}
+.loading-text{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:.5px}
 
-  --nav-w: 72px;
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body:    'Inter', system-ui, sans-serif;
-  --font-mono:    'IBM Plex Mono', monospace;
-}
+/* ── LOGIN ──────────────────────────────────────────────────────────────── */
+#login-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,var(--sea-900) 0%,var(--sea-700) 55%,var(--navy) 100%);display:flex;align-items:center;justify-content:center}
+.login-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:48px 44px 40px;width:100%;max-width:400px;backdrop-filter:blur(12px);box-shadow:0 32px 80px rgba(0,0,0,.4)}
+.login-logo{width:56px;height:56px;background:linear-gradient(135deg,var(--sea-600),var(--sea-400));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 24px;box-shadow:0 8px 24px rgba(27,138,158,.5)}
+.login-wordmark{text-align:center;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--sand);margin-bottom:8px}
+.login-title{font-family:var(--f-display);font-size:26px;font-weight:700;color:var(--white);text-align:center;margin-bottom:6px;line-height:1.2}
+.login-sub{font-size:13px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:32px}
+.login-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.5);margin-bottom:8px;display:block}
+.login-input{width:100%;padding:13px 16px;font-family:var(--f-body);font-size:15px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:var(--r-sm);color:var(--white);outline:none;transition:border-color .18s,box-shadow .18s;margin-bottom:20px}
+.login-input::placeholder{color:rgba(255,255,255,.3)}
+.login-input:focus{border-color:var(--sea-400);box-shadow:0 0 0 3px rgba(58,172,191,.2)}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--sea-600),var(--sea-400));color:var(--white);border:none;border-radius:var(--r-sm);font-family:var(--f-body);font-size:14px;font-weight:600;cursor:pointer;transition:all .18s;box-shadow:0 6px 20px rgba(27,138,158,.4);display:flex;align-items:center;justify-content:center;gap:8px}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(27,138,158,.5)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.login-error{margin-top:14px;padding:10px 14px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);border-radius:var(--r-sm);font-size:13px;color:#FCA5A5;text-align:center}
+.login-footer{margin-top:20px;text-align:center;font-size:11px;color:rgba(255,255,255,.25)}
 
-/* ── RESET ───────────────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 16px; scroll-behavior: smooth; }
-body {
-  font-family: var(--font-body);
-  background: var(--grey-50);
-  color: var(--grey-900);
-  min-height: 100vh;
-  display: flex;
-  overflow-x: hidden;
-}
+/* ── SIDEBAR ────────────────────────────────────────────────────────────── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--nav-w);background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:20px 0;z-index:100;box-shadow:4px 0 24px rgba(10,22,40,.18)}
+.sidebar-logo{width:44px;height:44px;background:linear-gradient(135deg,var(--sea-600),var(--sea-400));border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;margin-bottom:32px;font-size:20px;box-shadow:0 4px 12px rgba(27,138,158,.4);flex-shrink:0}
+.sidebar-nav{display:flex;flex-direction:column;gap:4px;width:100%;padding:0 10px}
+.nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;border-radius:var(--r-sm);cursor:pointer;transition:background .18s;border:none;background:transparent;color:rgba(255,255,255,.45);gap:4px;position:relative;font-family:var(--f-body)}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.75)}
+.nav-item.active{background:rgba(27,138,158,.25);color:var(--sea-400)}
+.nav-item.active::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:3px;height:24px;background:var(--sea-400);border-radius:0 2px 2px 0}
+.nav-icon{font-size:20px;line-height:1}
+.nav-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;text-align:center}
+.sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 10px;width:100%}
 
-/* ── SIDEBAR NAV ─────────────────────────────────────────────────────────── */
-.sidebar {
-  position: fixed; left: 0; top: 0; bottom: 0;
-  width: var(--nav-w);
-  background: var(--navy);
-  display: flex; flex-direction: column; align-items: center;
-  padding: 20px 0;
-  z-index: 100;
-  box-shadow: 4px 0 24px rgba(10,22,40,.18);
-}
+/* ── MAIN / HERO ────────────────────────────────────────────────────────── */
+.main{margin-left:var(--nav-w);flex:1;min-height:100vh;display:flex;flex-direction:column}
+.hero{background:linear-gradient(135deg,var(--sea-900) 0%,var(--sea-700) 60%,var(--sea-600) 100%);padding:40px 48px 0;position:relative;overflow:hidden}
+.hero::after{content:'';display:block;height:48px;background:var(--grey-50);clip-path:ellipse(55% 100% at 50% 100%);margin-top:-1px}
+.hero-inner{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;position:relative;z-index:2}
+.hero-wordmark{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--sand);margin-bottom:8px}
+.hero-title{font-family:var(--f-display);font-size:32px;font-weight:700;color:var(--white);line-height:1.18;max-width:420px}
+.hero-title em{color:var(--sea-400);font-style:normal}
+.hero-subtitle{margin-top:10px;font-size:14px;color:rgba(255,255,255,.65);line-height:1.6;max-width:380px}
+.hero-kpis{display:flex;gap:16px;align-items:flex-start;margin-top:4px}
+.kpi-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-md);padding:16px 20px;text-align:center;min-width:110px;backdrop-filter:blur(8px)}
+.kpi-value{font-family:var(--f-mono);font-size:22px;font-weight:500;color:var(--white)}
+.kpi-value.positive{color:#5DD9B0}
+.kpi-value.warning{color:var(--sand)}
+.kpi-label{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
 
-.sidebar-logo {
-  width: 44px; height: 44px;
-  background: linear-gradient(135deg, var(--sea-600), var(--sea-400));
-  border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 32px;
-  font-size: 20px;
-  box-shadow: 0 4px 12px rgba(27,138,158,.4);
-  flex-shrink: 0;
-}
+/* ── CONTENT ────────────────────────────────────────────────────────────── */
+.content{padding:32px 48px 64px;flex:1}
+.panel{display:none}
+.panel.active{display:block}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.section-eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--sea-600)}
+.section-title{font-family:var(--f-display);font-size:22px;font-weight:600;color:var(--grey-900)}
+.section-divider{flex:1;height:1px;background:var(--grey-100)}
 
-.sidebar-nav { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0 10px; }
+/* ── FORM ───────────────────────────────────────────────────────────────── */
+.form-card{background:var(--white);border-radius:var(--r-lg);box-shadow:var(--sh-md);border:1px solid var(--grey-100);overflow:hidden;margin-bottom:24px}
+.form-card-header{padding:20px 28px 16px;border-bottom:1px solid var(--grey-100);display:flex;align-items:center;gap:12px}
+.form-card-icon{width:38px;height:38px;background:var(--sea-100);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.form-card-title{font-size:15px;font-weight:600;color:var(--grey-900)}
+.form-card-sub{font-size:12px;color:var(--grey-500);margin-top:2px}
+.form-card-body{padding:24px 28px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+.form-group.half{grid-column:span 2}
+.form-group.ref-group input{font-family:var(--f-mono);font-size:13px;background:#F0FAFC;border-color:var(--sea-100);color:var(--sea-700);font-weight:500}
+label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--grey-500)}
+input,select,textarea{font-family:var(--f-body);font-size:14px;color:var(--grey-900);background:var(--grey-50);border:1.5px solid var(--grey-100);border-radius:var(--r-sm);padding:10px 14px;transition:border-color .18s,box-shadow .18s,background .18s;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{background:var(--white);border-color:var(--sea-600);box-shadow:var(--sh-sea)}
+textarea{resize:vertical;min-height:80px}
+.link-input-wrap{position:relative}
+.link-input-wrap input{padding-right:40px}
+.link-input-wrap .link-preview{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;opacity:.5;cursor:pointer;transition:opacity .15s}
+.link-input-wrap .link-preview:hover{opacity:1}
+.form-actions{display:flex;align-items:center;gap:12px;padding:16px 28px 20px;border-top:1px solid var(--grey-100);background:var(--grey-50)}
 
-.nav-item {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 10px 4px 8px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background .18s, transform .12s;
-  border: none; background: transparent;
-  color: rgba(255,255,255,.45);
-  gap: 4px;
-  position: relative;
-  font-family: var(--font-body);
-}
-.nav-item:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.75); transform: none; }
-.nav-item.active { background: rgba(27,138,158,.25); color: var(--sea-400); }
-.nav-item.active::before {
-  content: '';
-  position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
-  width: 3px; height: 24px;
-  background: var(--sea-400);
-  border-radius: 0 2px 2px 0;
-}
-.nav-icon { font-size: 20px; line-height: 1; }
-.nav-label { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .6px; text-align: center; }
+/* ── BUTTONS ────────────────────────────────────────────────────────────── */
+.btn{font-family:var(--f-body);font-size:13px;font-weight:600;padding:10px 22px;border-radius:var(--r-sm);border:none;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn-primary{background:linear-gradient(135deg,var(--sea-700),var(--sea-600));color:var(--white);box-shadow:0 4px 12px rgba(13,95,115,.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,95,115,.4)}
+.btn-secondary{background:var(--grey-100);color:var(--grey-700)}
+.btn-secondary:hover{background:var(--grey-300)}
+.btn-danger{background:#FEE2E2;color:#DC2626}
+.btn-danger:hover{background:#FECACA}
+.btn-ghost{background:var(--grey-50);color:var(--grey-600);border:1px solid var(--grey-100)}
+.btn-ghost:hover{background:var(--grey-100)}
+.btn-sea{background:var(--sea-100);color:var(--sea-700)}
+.btn-sea:hover{background:var(--sea-400);color:var(--white)}
+.btn-sm{font-size:12px;padding:6px 14px}
 
-.sidebar-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 10px; width: 100%; }
+/* ── BADGES ─────────────────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px}
+.badge-green{background:#D1FAE5;color:#065F46}
+.badge-orange{background:#FEF3C7;color:#92400E}
+.badge-red{background:#FEE2E2;color:#991B1B}
+.badge-grey{background:var(--grey-100);color:var(--grey-500)}
+.badge-sea{background:var(--sea-100);color:var(--sea-700)}
+.badge-sand{background:var(--sand-lt);color:#78350F}
 
-/* ── MAIN CONTENT ────────────────────────────────────────────────────────── */
-.main {
-  margin-left: var(--nav-w);
-  flex: 1;
-  min-height: 100vh;
-  display: flex; flex-direction: column;
-}
+/* ── SYNTH CARDS ────────────────────────────────────────────────────────── */
+.synth-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.synth-card{background:var(--white);border-radius:var(--r-md);border:1px solid var(--grey-100);padding:20px 22px;box-shadow:var(--sh-sm);position:relative;overflow:hidden}
+.synth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.synth-card.sea::before{background:linear-gradient(90deg,var(--sea-700),var(--sea-400))}
+.synth-card.sand::before{background:linear-gradient(90deg,var(--sand),#E8C49A)}
+.synth-card.green::before{background:linear-gradient(90deg,#10B981,#34D399)}
+.synth-card.red::before{background:linear-gradient(90deg,#EF4444,#F87171)}
+.synth-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--grey-500);margin-bottom:8px}
+.synth-value{font-family:var(--f-mono);font-size:28px;font-weight:500;color:var(--grey-900);line-height:1}
+.synth-value.positive{color:#059669}
+.synth-value.negative{color:#DC2626}
+.synth-sub{font-size:12px;color:var(--grey-500);margin-top:6px}
 
-/* ── HEADER HERO ─────────────────────────────────────────────────────────── */
-.hero {
-  background: linear-gradient(135deg, var(--sea-900) 0%, var(--sea-700) 60%, var(--sea-600) 100%);
-  padding: 40px 48px 0;
-  position: relative;
-  overflow: hidden;
-}
-.hero::after {
-  content: '';
-  display: block;
-  height: 48px;
-  background: var(--grey-50);
-  clip-path: ellipse(55% 100% at 50% 100%);
-  margin-top: -1px;
-}
+/* ── TABLES ─────────────────────────────────────────────────────────────── */
+.table-wrapper{background:var(--white);border-radius:var(--r-lg);box-shadow:var(--sh-md);border:1px solid var(--grey-100);overflow:hidden;margin-bottom:24px}
+.table-toolbar{padding:16px 24px;border-bottom:1px solid var(--grey-100);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.table-search{flex:1;min-width:160px;padding:8px 14px 8px 36px;font-size:13px;background:var(--grey-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A8B96' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 12px center}
+table{width:100%;border-collapse:collapse}
+thead th{padding:12px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--grey-500);background:var(--grey-50);border-bottom:1px solid var(--grey-100);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--grey-50);transition:background .12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--sea-100)}
+tbody td{padding:12px 16px;font-size:13px;color:var(--grey-700);vertical-align:middle}
+.td-amount{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--grey-900);text-align:right}
+.td-amount.positive{color:#065F46}
+.td-amount.negative{color:#991B1B}
 
-.hero-inner {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 24px;
-  position: relative; z-index: 2;
-}
-.hero-wordmark {
-  font-family: var(--font-body);
-  font-size: 11px; font-weight: 600;
-  letter-spacing: 2px; text-transform: uppercase;
-  color: var(--sand);
-  margin-bottom: 8px;
-}
-.hero-title {
-  font-family: var(--font-display);
-  font-size: 32px; font-weight: 700;
-  color: var(--white);
-  line-height: 1.18;
-  max-width: 420px;
-}
-.hero-title em { color: var(--sea-400); font-style: normal; }
-.hero-subtitle {
-  margin-top: 10px;
-  font-size: 14px; color: rgba(255,255,255,.65); line-height: 1.6;
-  max-width: 380px;
-}
+/* ── MONTHLY BARS ───────────────────────────────────────────────────────── */
+.month-row{display:flex;align-items:center;padding:12px 24px;border-bottom:1px solid var(--grey-50);transition:background .12s}
+.month-row:hover{background:var(--sea-100)}
+.month-name{width:120px;font-weight:500;font-size:14px}
+.month-bar-wrap{flex:1;height:6px;background:var(--grey-100);border-radius:99px;margin:0 16px;overflow:hidden}
+.month-bar{height:100%;background:linear-gradient(90deg,var(--sea-700),var(--sea-400));border-radius:99px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.month-amount{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--grey-900);width:110px;text-align:right}
+.month-count{font-size:11px;color:var(--grey-500);width:60px;text-align:right}
 
-.hero-kpis {
-  display: flex; gap: 16px; align-items: flex-start; margin-top: 4px;
-}
-.kpi-card {
-  background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: var(--radius-md);
-  padding: 16px 20px;
-  text-align: center;
-  min-width: 110px;
-  backdrop-filter: blur(8px);
-}
-.kpi-value {
-  font-family: var(--font-mono);
-  font-size: 22px; font-weight: 500;
-  color: var(--white);
-}
-.kpi-value.positive { color: #5DD9B0; }
-.kpi-value.warning  { color: var(--sand); }
-.kpi-label { font-size: 10px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .8px; margin-top: 3px; }
+/* ── TOAST ──────────────────────────────────────────────────────────────── */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.toast{background:var(--grey-900);color:var(--white);padding:12px 20px;border-radius:var(--r-md);font-size:13px;font-weight:500;box-shadow:var(--sh-lg);display:flex;align-items:center;gap:10px;animation:slideUp .3s ease;max-width:340px;pointer-events:auto}
+.toast.success{background:#064E3B;border-left:3px solid #10B981}
+.toast.error{background:#7F1D1D;border-left:3px solid #EF4444}
+.toast.info{background:var(--sea-900);border-left:3px solid var(--sea-400)}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── CONTENT AREA ────────────────────────────────────────────────────────── */
-.content { padding: 32px 48px 64px; flex: 1; }
+/* ── EMPTY STATE ────────────────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:60px 32px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.empty-icon{font-size:48px;opacity:.3}
+.empty-title{font-size:16px;font-weight:600;color:var(--grey-700)}
+.empty-sub{font-size:13px;color:var(--grey-500)}
+.spinner{width:20px;height:20px;border:2px solid var(--grey-100);border-top-color:var(--sea-600);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── SECTION HEADER ──────────────────────────────────────────────────────── */
-.section-header {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
-}
-.section-eyebrow {
-  font-size: 11px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 1.2px; color: var(--sea-600);
-}
-.section-title {
-  font-family: var(--font-display);
-  font-size: 22px; font-weight: 600; color: var(--grey-900);
-}
-.section-divider {
-  flex: 1; height: 1px; background: var(--grey-100);
-}
+/* ── NOTICE ─────────────────────────────────────────────────────────────── */
+.notice{background:var(--sand-lt);border:1.5px solid var(--sand);border-radius:var(--r-md);padding:12px 18px;margin-bottom:20px;font-size:13px;color:#78350F}
 
-/* ── TABS ────────────────────────────────────────────────────────────────── */
-.tab-bar {
-  display: flex; gap: 4px;
-  background: var(--grey-100);
-  border-radius: var(--radius-md);
-  padding: 4px;
-  margin-bottom: 28px;
-  width: fit-content;
-}
-.tab-btn {
-  padding: 8px 20px;
-  border-radius: var(--radius-sm);
-  border: none; background: transparent;
-  font-family: var(--font-body); font-size: 13px; font-weight: 500;
-  color: var(--grey-500); cursor: pointer;
-  transition: all .18s;
-}
-.tab-btn.active {
-  background: var(--white);
-  color: var(--sea-700);
-  box-shadow: var(--shadow-sm);
-  font-weight: 600;
-}
-
-/* ── FORM CARD ───────────────────────────────────────────────────────────── */
-.form-card {
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--grey-100);
-  overflow: hidden;
-  margin-bottom: 24px;
-}
-.form-card-header {
-  padding: 20px 28px 16px;
-  border-bottom: 1px solid var(--grey-100);
-  display: flex; align-items: center; gap: 12px;
-}
-.form-card-icon {
-  width: 38px; height: 38px;
-  background: var(--sea-100);
-  border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0;
-}
-.form-card-title { font-size: 15px; font-weight: 600; color: var(--grey-900); }
-.form-card-sub   { font-size: 12px; color: var(--grey-500); margin-top: 2px; }
-.form-card-body  { padding: 24px 28px; }
-
-/* ── FORM GRID ───────────────────────────────────────────────────────────── */
-.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group.full { grid-column: 1 / -1; }
-.form-group.half { grid-column: span 2; }
-
-label {
-  font-size: 11px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .7px; color: var(--grey-500);
-}
-input, select, textarea {
-  font-family: var(--font-body); font-size: 14px;
-  color: var(--grey-900);
-  background: var(--grey-50);
-  border: 1.5px solid var(--grey-100);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  transition: border-color .18s, box-shadow .18s, background .18s;
-  outline: none;
-  width: 100%;
-}
-input:focus, select:focus, textarea:focus {
-  background: var(--white);
-  border-color: var(--sea-600);
-  box-shadow: var(--shadow-sea);
-}
-select { cursor: pointer; }
-textarea { resize: vertical; min-height: 80px; }
-
-/* ── BUTTONS ─────────────────────────────────────────────────────────────── */
-.btn {
-  font-family: var(--font-body); font-size: 13px; font-weight: 600;
-  padding: 10px 22px;
-  border-radius: var(--radius-sm);
-  border: none; cursor: pointer;
-  transition: all .18s;
-  display: inline-flex; align-items: center; gap: 8px;
-  text-decoration: none;
-}
-.btn-primary {
-  background: linear-gradient(135deg, var(--sea-700), var(--sea-600));
-  color: var(--white);
-  box-shadow: 0 4px 12px rgba(13,95,115,.3);
-}
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(13,95,115,.4);
-}
-.btn-primary:active { transform: translateY(0); }
-
-.btn-secondary {
-  background: var(--grey-100);
-  color: var(--grey-700);
-}
-.btn-secondary:hover { background: var(--grey-300); }
-
-.btn-danger { background: #FEE2E2; color: #DC2626; }
-.btn-danger:hover { background: #FECACA; }
-
-.btn-sm { font-size: 12px; padding: 6px 14px; }
-
-.form-actions {
-  display: flex; align-items: center; gap: 12px;
-  padding: 16px 28px 20px;
-  border-top: 1px solid var(--grey-100);
-  background: var(--grey-50);
-}
-
-/* ── STATUS BADGE ────────────────────────────────────────────────────────── */
-.badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11px; font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 99px;
-}
-.badge-green  { background: #D1FAE5; color: #065F46; }
-.badge-orange { background: #FEF3C7; color: #92400E; }
-.badge-red    { background: #FEE2E2; color: #991B1B; }
-.badge-grey   { background: var(--grey-100); color: var(--grey-500); }
-.badge-sea    { background: var(--sea-100); color: var(--sea-700); }
-
-/* ── TABLE ───────────────────────────────────────────────────────────────── */
-.table-wrapper {
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--grey-100);
-  overflow: hidden;
-}
-.table-toolbar {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--grey-100);
-  display: flex; align-items: center; gap: 12px;
-}
-.table-search {
-  flex: 1;
-  padding: 8px 14px 8px 36px;
-  font-size: 13px;
-  background: var(--grey-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A8B96' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 12px center;
-}
-.table-search:focus { background-color: var(--white); }
-
-table { width: 100%; border-collapse: collapse; }
-thead th {
-  padding: 12px 16px;
-  text-align: left; font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: .7px;
-  color: var(--grey-500);
-  background: var(--grey-50);
-  border-bottom: 1px solid var(--grey-100);
-  white-space: nowrap;
-}
-tbody tr { border-bottom: 1px solid var(--grey-50); transition: background .12s; }
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: var(--sea-100); }
-tbody td {
-  padding: 13px 16px;
-  font-size: 13px; color: var(--grey-700);
-  vertical-align: middle;
-}
-.td-amount {
-  font-family: var(--font-mono); font-size: 13px; font-weight: 500;
-  color: var(--grey-900); text-align: right;
-}
-.td-amount.positive { color: #065F46; }
-.td-amount.negative { color: #991B1B; }
-
-/* ── SYNTHÈSE GRID ───────────────────────────────────────────────────────── */
-.synth-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-.synth-card {
-  background: var(--white);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--grey-100);
-  padding: 20px 22px;
-  box-shadow: var(--shadow-sm);
-  position: relative; overflow: hidden;
-}
-.synth-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-}
-.synth-card.sea::before  { background: linear-gradient(90deg, var(--sea-700), var(--sea-400)); }
-.synth-card.sand::before { background: linear-gradient(90deg, var(--sand), #E8C49A); }
-.synth-card.green::before{ background: linear-gradient(90deg, #10B981, #34D399); }
-.synth-card.red::before  { background: linear-gradient(90deg, #EF4444, #F87171); }
-
-.synth-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--grey-500); margin-bottom: 8px; }
-.synth-value { font-family: var(--font-mono); font-size: 28px; font-weight: 500; color: var(--grey-900); line-height: 1; }
-.synth-value.positive { color: #059669; }
-.synth-value.negative { color: #DC2626; }
-.synth-sub { font-size: 12px; color: var(--grey-500); margin-top: 6px; }
-
-/* ── MONTH TABLE (synthèse) ──────────────────────────────────────────────── */
-.month-row { display: flex; align-items: center; gap: 0; padding: 12px 24px; border-bottom: 1px solid var(--grey-50); transition: background .12s; }
-.month-row:hover { background: var(--sea-100); }
-.month-name { width: 120px; font-weight: 500; font-size: 14px; }
-.month-bar-wrap { flex: 1; height: 6px; background: var(--grey-100); border-radius: 99px; margin: 0 16px; overflow: hidden; }
-.month-bar { height: 100%; background: linear-gradient(90deg, var(--sea-700), var(--sea-400)); border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1); }
-.month-amount { font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: var(--grey-900); width: 110px; text-align: right; }
-.month-count { font-size: 11px; color: var(--grey-500); width: 60px; text-align: right; }
-
-/* ── TOAST ───────────────────────────────────────────────────────────────── */
-#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-.toast {
-  background: var(--grey-900);
-  color: var(--white);
-  padding: 12px 20px;
-  border-radius: var(--radius-md);
-  font-size: 13px; font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  display: flex; align-items: center; gap: 10px;
-  animation: slideUp .3s ease;
-  max-width: 320px;
-}
-.toast.success { background: #064E3B; border-left: 3px solid #10B981; }
-.toast.error   { background: #7F1D1D; border-left: 3px solid #EF4444; }
-.toast.info    { background: var(--sea-900); border-left: 3px solid var(--sea-400); }
-@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-
-/* ── EMPTY STATE ─────────────────────────────────────────────────────────── */
-.empty-state {
-  text-align: center; padding: 60px 32px;
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-}
-.empty-icon { font-size: 48px; opacity: .3; }
-.empty-title { font-size: 16px; font-weight: 600; color: var(--grey-700); }
-.empty-sub { font-size: 13px; color: var(--grey-500); }
-
-/* ── LOADING ─────────────────────────────────────────────────────────────── */
-.spinner {
-  width: 20px; height: 20px;
-  border: 2px solid var(--grey-100);
-  border-top-color: var(--sea-600);
-  border-radius: 50%;
-  animation: spin .7s linear infinite;
-  display: inline-block;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── SECTION PANELS ──────────────────────────────────────────────────────── */
-.panel { display: none; }
-.panel.active { display: block; }
-
-/* ── FIREBASE CONFIG BANNER ──────────────────────────────────────────────── */
-.config-banner {
-  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
-  border: 1.5px solid #F59E0B;
-  border-radius: var(--radius-md);
-  padding: 16px 20px;
-  margin-bottom: 24px;
-  display: flex; align-items: flex-start; gap: 12px;
-  font-size: 13px; color: #78350F;
-}
-.config-banner code {
-  font-family: var(--font-mono); font-size: 12px;
-  background: rgba(0,0,0,.08); padding: 1px 5px;
-  border-radius: 4px;
-}
-.config-banner strong { font-weight: 600; }
-
-/* ── RESPONSIVE ──────────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .hero { padding: 28px 24px 0; }
-  .content { padding: 24px; }
-  .hero-inner { flex-direction: column; }
-  .hero-kpis { flex-wrap: wrap; }
-  .synth-grid { grid-template-columns: repeat(2, 1fr); }
-  .form-grid { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 600px) {
-  .main { margin-left: 0; }
-  .sidebar { display: none; }
-  .synth-grid { grid-template-columns: 1fr; }
-}
+/* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media(max-width:900px){.hero{padding:28px 24px 0}.content{padding:24px}.hero-inner{flex-direction:column}.hero-kpis{flex-wrap:wrap}.synth-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.main{margin-left:0}.sidebar{display:none}.synth-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
-<!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
-<nav class="sidebar">
-  <div class="sidebar-logo">💼</div>
-  <div class="sidebar-nav">
-    <button class="nav-item active" onclick="showPanel('dashboard')" title="Tableau de bord">
-      <span class="nav-icon">📊</span>
-      <span class="nav-label">Bord</span>
-    </button>
-    <button class="nav-item" onclick="showPanel('recettes')" title="Recettes">
-      <span class="nav-icon">💰</span>
-      <span class="nav-label">Recettes</span>
-    </button>
-    <button class="nav-item" onclick="showPanel('depenses')" title="Dépenses">
-      <span class="nav-icon">💳</span>
-      <span class="nav-label">Dépenses</span>
-    </button>
-    <button class="nav-item" onclick="showPanel('justifs')" title="Justificatifs">
-      <span class="nav-icon">📎</span>
-      <span class="nav-label">Justifs.</span>
-    </button>
-    <button class="nav-item" onclick="showPanel('synthese')" title="Synthèse">
-      <span class="nav-icon">📅</span>
-      <span class="nav-label">Synthèse</span>
-    </button>
-  </div>
-  <div class="sidebar-bottom">
-    <button class="nav-item" onclick="exportData()" title="Exporter">
-      <span class="nav-icon">⬇️</span>
-      <span class="nav-label">Export</span>
-    </button>
-  </div>
-</nav>
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loading-logo">💼</div>
+  <div class="loading-text">Chargement de l'application…</div>
+</div>
 
-<!-- ── MAIN ────────────────────────────────────────────────────────────── -->
-<div class="main">
+<!-- LOGIN -->
+<div id="login-screen" class="hidden">
+  <div class="login-box">
+    <div class="login-logo">💼</div>
+    <div class="login-wordmark">Consult-Gherio</div>
+    <div class="login-title">Gestion Financière</div>
+    <div class="login-sub">Espace sécurisé — accès restreint</div>
+    <label class="login-label" for="pwd-input">Mot de passe</label>
+    <input class="login-input" type="password" id="pwd-input" placeholder="••••••••••" autocomplete="current-password">
+    <button class="login-btn" id="login-btn" onclick="doLogin()">
+      <span id="login-btn-text">Accéder</span>
+    </button>
+    <div class="login-error hidden" id="login-error">Mot de passe incorrect. Réessayez.</div>
+    <div class="login-footer">consult-gherio.fr · Accès sécurisé</div>
+  </div>
+</div>
 
-  <!-- HERO -->
-  <div class="hero">
-    <div class="hero-inner">
-      <div>
-        <div class="hero-wordmark">Consult-Gherio · Gestion Financière IA</div>
-        <h1 class="hero-title">Pilotez votre <em>micro-entreprise</em> en temps réel</h1>
-        <p class="hero-subtitle">Recettes, dépenses, justificatifs — synchronisés, analysés, prêts à l'emploi. Propulsé par Firebase + IA.</p>
-      </div>
-      <div class="hero-kpis">
-        <div class="kpi-card">
-          <div class="kpi-value positive" id="kpi-ca">—</div>
-          <div class="kpi-label">CA ce mois</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-value" id="kpi-dep">—</div>
-          <div class="kpi-label">Dépenses</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-value warning" id="kpi-justif">—</div>
-          <div class="kpi-label">Justif. manquants</div>
-        </div>
-      </div>
+<!-- APP -->
+<div id="app" style="display:none;width:100%;flex-direction:row">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">💼</div>
+    <div class="sidebar-nav">
+      <button class="nav-item active" onclick="showPanel('dashboard')"><span class="nav-icon">📊</span><span class="nav-label">Bord</span></button>
+      <button class="nav-item" onclick="showPanel('recettes')"><span class="nav-icon">💰</span><span class="nav-label">Recettes</span></button>
+      <button class="nav-item" onclick="showPanel('depenses')"><span class="nav-icon">💳</span><span class="nav-label">Dépenses</span></button>
+      <button class="nav-item" onclick="showPanel('justifs')"><span class="nav-icon">📎</span><span class="nav-label">Justifs.</span></button>
+      <button class="nav-item" onclick="showPanel('synthese')"><span class="nav-icon">📅</span><span class="nav-label">Synthèse</span></button>
     </div>
-  </div>
-
-  <!-- CONTENT -->
-  <div class="content">
-
-    <!-- CONFIG BANNER (shown if Firebase not configured) -->
-    <div class="config-banner" id="configBanner" style="display:none">
-      <span style="font-size:20px">⚙️</span>
-      <div>
-        <strong>Configuration Firebase requise.</strong> Ouvrez ce fichier HTML, remplacez les valeurs <code>YOUR_*</code> dans la section <code>firebaseConfig</code> par les clés de votre projet Firebase.
-        <a href="https://console.firebase.google.com" target="_blank" style="color:#92400E;font-weight:600;margin-left:6px">→ Firebase Console</a>
-      </div>
+    <div class="sidebar-bottom">
+      <button class="nav-item" onclick="exportData()" title="Exporter TSV"><span class="nav-icon">⬇️</span><span class="nav-label">Export</span></button>
+      <button class="nav-item" onclick="doLogout()" title="Déconnexion"><span class="nav-icon">🔒</span><span class="nav-label">Sortir</span></button>
     </div>
+  </nav>
 
-    <!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
-    <div id="panel-dashboard" class="panel active">
-      <div class="section-header">
+  <div class="main">
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-inner">
         <div>
-          <div class="section-eyebrow">Vue d'ensemble</div>
-          <div class="section-title">Tableau de bord</div>
+          <div class="hero-wordmark">Consult-Gherio · Gestion Financière</div>
+          <h1 class="hero-title">Pilotez votre <em>micro-entreprise</em> en temps réel</h1>
+          <p class="hero-subtitle">Recettes, dépenses, justificatifs — synchronisés sur Firebase, accessibles partout.</p>
         </div>
-        <div class="section-divider"></div>
-      </div>
-
-      <div class="synth-grid" id="dashCards">
-        <div class="synth-card sea">
-          <div class="synth-label">Chiffre d'affaires annuel</div>
-          <div class="synth-value" id="d-ca-annual">…</div>
-          <div class="synth-sub">Total TTC facturé</div>
+        <div class="hero-kpis">
+          <div class="kpi-card"><div class="kpi-value positive" id="kpi-ca">—</div><div class="kpi-label">CA ce mois</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="kpi-dep">—</div><div class="kpi-label">Dépenses</div></div>
+          <div class="kpi-card"><div class="kpi-value warning" id="kpi-justif">—</div><div class="kpi-label">Justif. manquants</div></div>
         </div>
-        <div class="synth-card green">
-          <div class="synth-label">Encaissé (HT)</div>
-          <div class="synth-value positive" id="d-encaisse">…</div>
-          <div class="synth-sub">Paiements reçus</div>
-        </div>
-        <div class="synth-card sand">
-          <div class="synth-label">Dépenses suivies</div>
-          <div class="synth-value" id="d-depenses">…</div>
-          <div class="synth-sub">Non déductibles — suivi interne</div>
-        </div>
-        <div class="synth-card sea">
-          <div class="synth-label">Trésorerie nette</div>
-          <div class="synth-value" id="d-treso">…</div>
-          <div class="synth-sub">Encaissé − Dépenses</div>
-        </div>
-        <div class="synth-card red">
-          <div class="synth-label">Justificatifs manquants</div>
-          <div class="synth-value negative" id="d-missing">…</div>
-          <div class="synth-sub">À régulariser</div>
-        </div>
-        <div class="synth-card sand">
-          <div class="synth-label">Factures émises</div>
-          <div class="synth-value" id="d-nb-fac">…</div>
-          <div class="synth-sub">Total enregistrées</div>
-        </div>
-      </div>
-
-      <!-- Recent activity -->
-      <div class="table-wrapper">
-        <div class="table-toolbar">
-          <span style="font-weight:600;font-size:14px;color:var(--grey-700)">Activité récente</span>
-          <span class="badge badge-sea" id="recent-count">—</span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th><th>Type</th><th>Désignation</th><th>Client / Fournisseur</th><th style="text-align:right">Montant</th><th>Statut</th>
-            </tr>
-          </thead>
-          <tbody id="recent-table-body">
-            <tr><td colspan="6"><div class="empty-state"><span class="spinner"></span></div></td></tr>
-          </tbody>
-        </table>
       </div>
     </div>
 
-    <!-- ── RECETTES ────────────────────────────────────────────────────── -->
-    <div id="panel-recettes" class="panel">
-      <div class="section-header">
-        <div>
-          <div class="section-eyebrow">Chiffre d'affaires</div>
-          <div class="section-title">Recettes</div>
+    <div class="content">
+
+      <!-- ── DASHBOARD ─────────────────────────────────────────────────── -->
+      <div id="panel-dashboard" class="panel active">
+        <div class="section-header">
+          <div><div class="section-eyebrow">Vue d'ensemble</div><div class="section-title">Tableau de bord</div></div>
+          <div class="section-divider"></div>
         </div>
-        <div class="section-divider"></div>
-        <button class="btn btn-primary btn-sm" onclick="toggleForm('form-recette')">
-          <span>+</span> Nouvelle recette
-        </button>
+        <div class="synth-grid">
+          <div class="synth-card sea"><div class="synth-label">CA annuel TTC</div><div class="synth-value" id="d-ca-annual">…</div><div class="synth-sub">Total TTC facturé</div></div>
+          <div class="synth-card green"><div class="synth-label">Encaissé (HT)</div><div class="synth-value positive" id="d-encaisse">…</div><div class="synth-sub">Paiements reçus</div></div>
+          <div class="synth-card sand"><div class="synth-label">Dépenses suivies</div><div class="synth-value" id="d-depenses">…</div><div class="synth-sub">Suivi interne — non déductibles</div></div>
+          <div class="synth-card sea"><div class="synth-label">Trésorerie nette</div><div class="synth-value" id="d-treso">…</div><div class="synth-sub">Encaissé − Dépenses</div></div>
+          <div class="synth-card red"><div class="synth-label">Justificatifs manquants</div><div class="synth-value negative" id="d-missing">…</div><div class="synth-sub">À régulariser</div></div>
+          <div class="synth-card sand"><div class="synth-label">Factures émises</div><div class="synth-value" id="d-nb-fac">…</div><div class="synth-sub">Total enregistrées</div></div>
+        </div>
+        <div class="table-wrapper">
+          <div class="table-toolbar">
+            <span style="font-weight:600;font-size:14px;color:var(--grey-700)">Activité récente</span>
+            <span class="badge badge-sea" id="recent-count">—</span>
+          </div>
+          <table><thead><tr><th>Réf.</th><th>Date</th><th>Type</th><th>Désignation</th><th>Client / Fournisseur</th><th style="text-align:right">Montant</th><th>Statut</th></tr></thead>
+          <tbody id="recent-table-body"><tr><td colspan="7"><div class="empty-state"><span class="spinner"></span></div></td></tr></tbody></table>
+        </div>
       </div>
 
-      <!-- Form -->
-      <div class="form-card" id="form-recette" style="display:none">
-        <div class="form-card-header">
-          <div class="form-card-icon">💰</div>
-          <div>
-            <div class="form-card-title">Enregistrer une recette</div>
-            <div class="form-card-sub">Tous les champs marqués * sont obligatoires</div>
+      <!-- ── RECETTES ──────────────────────────────────────────────────── -->
+      <div id="panel-recettes" class="panel">
+        <div class="section-header">
+          <div><div class="section-eyebrow">Chiffre d'affaires</div><div class="section-title">Recettes</div></div>
+          <div class="section-divider"></div>
+          <button class="btn btn-primary btn-sm" onclick="openNewRecette()">+ Nouvelle recette</button>
+        </div>
+        <div class="form-card" id="form-recette" style="display:none">
+          <div class="form-card-header"><div class="form-card-icon">💰</div><div><div class="form-card-title">Enregistrer une recette</div><div class="form-card-sub">Les champs * sont obligatoires — Réf. générée automatiquement</div></div></div>
+          <div class="form-card-body"><div class="form-grid">
+            <div class="form-group ref-group">
+              <label>Réf. automatique</label>
+              <input type="text" id="r-ref" placeholder="FAC-2025-08-XXXX" readonly>
+            </div>
+            <div class="form-group"><label>Date *</label><input type="date" id="r-date"></div>
+            <div class="form-group"><label>Client *</label><input type="text" id="r-client" placeholder="SAS Dupont"></div>
+            <div class="form-group half"><label>Prestation *</label><input type="text" id="r-prestation" placeholder="Consultation stratégie IA"></div>
+            <div class="form-group"><label>N° Facture</label><input type="text" id="r-facture" placeholder="FAC-2025-001"></div>
+            <div class="form-group"><label>Montant HT (€) *</label><input type="number" id="r-ht" step="0.01" min="0" placeholder="1500.00"></div>
+            <div class="form-group"><label>TVA (€)</label><input type="number" id="r-tva" step="0.01" min="0" placeholder="0.00"></div>
+            <div class="form-group"><label>Montant TTC (€)</label><input type="number" id="r-ttc" step="0.01" min="0" placeholder="Calculé auto"></div>
+            <div class="form-group"><label>Mode paiement</label><select id="r-mode"><option value="">—</option><option>Virement</option><option>Chèque</option><option>Carte bancaire</option><option>Prélèvement</option><option>Espèces</option><option>PayPal</option><option>Stripe</option></select></div>
+            <div class="form-group"><label>Encaissé ?</label><select id="r-enc"><option value="">—</option><option>Oui</option><option>Non</option><option>En attente</option></select></div>
+            <div class="form-group full"><label>Commentaire</label><textarea id="r-comment" placeholder="Notes internes…"></textarea></div>
+          </div></div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveRecette()">💾 Sauvegarder</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-recette')">Annuler</button>
           </div>
         </div>
-        <div class="form-card-body">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Date *</label>
-              <input type="date" id="r-date" required>
-            </div>
-            <div class="form-group">
-              <label>Client *</label>
-              <input type="text" id="r-client" placeholder="ex. SAS Dupont" required>
-            </div>
-            <div class="form-group half">
-              <label>Prestation / Objet *</label>
-              <input type="text" id="r-prestation" placeholder="ex. Consultation stratégie IA" required>
-            </div>
-            <div class="form-group">
-              <label>N° Facture *</label>
-              <input type="text" id="r-facture" placeholder="FAC-2025-001">
-            </div>
-            <div class="form-group">
-              <label>Montant HT (€) *</label>
-              <input type="number" id="r-ht" step="0.01" min="0" placeholder="1500.00" required>
-            </div>
-            <div class="form-group">
-              <label>TVA (€)</label>
-              <input type="number" id="r-tva" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-              <label>Montant TTC (€)</label>
-              <input type="number" id="r-ttc" step="0.01" min="0" placeholder="Calculé auto">
-            </div>
-            <div class="form-group">
-              <label>Mode de paiement</label>
-              <select id="r-mode">
-                <option value="">— Sélectionner —</option>
-                <option>Virement</option><option>Chèque</option>
-                <option>Carte bancaire</option><option>Prélèvement</option>
-                <option>Espèces</option><option>PayPal</option><option>Stripe</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Encaissé ?</label>
-              <select id="r-enc">
-                <option value="">— Sélectionner —</option>
-                <option>Oui</option><option>Non</option><option>En attente</option>
-              </select>
-            </div>
-            <div class="form-group full">
-              <label>Commentaire</label>
-              <textarea id="r-comment" placeholder="Notes internes, conditions, etc."></textarea>
-            </div>
+        <div class="table-wrapper">
+          <div class="table-toolbar">
+            <input class="table-search" type="search" placeholder="Rechercher par réf, client, prestation…" oninput="filterTable('recettes-table-body',this.value)">
+            <span class="badge badge-sea" id="recettes-count">—</span>
+          </div>
+          <div style="overflow-x:auto">
+          <table><thead><tr><th>Réf.</th><th>Date</th><th>Client</th><th>Prestation</th><th>Facture</th><th style="text-align:right">HT</th><th style="text-align:right">TTC</th><th>Paiement</th><th>Encaissé</th><th>Actions</th></tr></thead>
+          <tbody id="recettes-table-body"><tr><td colspan="10"><div class="empty-state"><span class="spinner"></span></div></td></tr></tbody></table>
           </div>
         </div>
-        <div class="form-actions">
-          <button class="btn btn-primary" onclick="saveRecette()">💾 Enregistrer</button>
-          <button class="btn btn-secondary" onclick="toggleForm('form-recette')">Annuler</button>
+      </div>
+
+      <!-- ── DÉPENSES ──────────────────────────────────────────────────── -->
+      <div id="panel-depenses" class="panel">
+        <div class="section-header">
+          <div><div class="section-eyebrow">Suivi interne</div><div class="section-title">Dépenses</div></div>
+          <div class="section-divider"></div>
+          <button class="btn btn-primary btn-sm" onclick="openNewDepense()">+ Nouvelle dépense</button>
         </div>
-      </div>
-
-      <!-- Table -->
-      <div class="table-wrapper">
-        <div class="table-toolbar">
-          <input class="table-search" type="search" placeholder="Rechercher..." oninput="filterTable('recettes-table-body', this.value)">
-          <span class="badge badge-sea" id="recettes-count">—</span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th><th>Client</th><th>Prestation</th><th>Facture</th>
-              <th style="text-align:right">Montant HT</th><th style="text-align:right">TTC</th>
-              <th>Paiement</th><th>Encaissé</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="recettes-table-body">
-            <tr><td colspan="9"><div class="empty-state"><span class="spinner"></span></div></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ── DÉPENSES ────────────────────────────────────────────────────── -->
-    <div id="panel-depenses" class="panel">
-      <div class="section-header">
-        <div>
-          <div class="section-eyebrow">Suivi interne</div>
-          <div class="section-title">Dépenses</div>
-        </div>
-        <div class="section-divider"></div>
-        <button class="btn btn-primary btn-sm" onclick="toggleForm('form-depense')">
-          <span>+</span> Nouvelle dépense
-        </button>
-      </div>
-
-      <!-- Warning -->
-      <div style="background:var(--sand-lt);border:1.5px solid var(--sand);border-radius:var(--radius-md);padding:12px 18px;margin-bottom:20px;font-size:13px;color:#78350F">
-        ⚠️ <strong>Rappel :</strong> En micro-entreprise, les dépenses ne se déduisent pas du CA fiscal. Ce suivi est destiné à votre gestion interne et à votre trésorerie.
-      </div>
-
-      <!-- Form -->
-      <div class="form-card" id="form-depense" style="display:none">
-        <div class="form-card-header">
-          <div class="form-card-icon">💳</div>
-          <div>
-            <div class="form-card-title">Enregistrer une dépense</div>
-            <div class="form-card-sub">Renseignez les détails et le justificatif associé</div>
+        <div class="notice">⚠️ <strong>Rappel :</strong> En micro-entreprise, les dépenses ne sont pas déductibles du CA fiscal. Ce suivi est destiné à la gestion de trésorerie et au pilotage interne.</div>
+        <div class="form-card" id="form-depense" style="display:none">
+          <div class="form-card-header"><div class="form-card-icon">💳</div><div><div class="form-card-title">Enregistrer une dépense</div><div class="form-card-sub">Réf. générée automatiquement — liez le justificatif après</div></div></div>
+          <div class="form-card-body"><div class="form-grid">
+            <div class="form-group ref-group">
+              <label>Réf. automatique</label>
+              <input type="text" id="d-ref" placeholder="DEP-2025-08-XXXX" readonly>
+            </div>
+            <div class="form-group"><label>Date *</label><input type="date" id="d-date"></div>
+            <div class="form-group"><label>Catégorie *</label><select id="d-cat"><option value="">—</option><option>Logiciels & abonnements</option><option>Déplacements</option><option>Équipement informatique</option><option>Formation & développement</option><option>Marketing & communication</option><option>Services professionnels</option><option>Frais bancaires</option><option>Bureau & fournitures</option><option>Restauration professionnelle</option><option>Autres</option></select></div>
+            <div class="form-group"><label>Sous-catégorie</label><input type="text" id="d-subcat" placeholder="SaaS / Cloud"></div>
+            <div class="form-group"><label>Fournisseur *</label><input type="text" id="d-fournisseur" placeholder="Adobe"></div>
+            <div class="form-group half"><label>Description *</label><input type="text" id="d-desc" placeholder="Abonnement Creative Cloud mensuel"></div>
+            <div class="form-group"><label>Montant TTC (€) *</label><input type="number" id="d-ttc" step="0.01" min="0" placeholder="29.99"></div>
+            <div class="form-group"><label>TVA estimée (€)</label><input type="number" id="d-tva" step="0.01" min="0" placeholder="0.00"></div>
+            <div class="form-group"><label>Mode paiement</label><select id="d-mode"><option value="">—</option><option>Virement</option><option>Chèque</option><option>Carte bancaire</option><option>Prélèvement</option><option>Espèces</option></select></div>
+            <div class="form-group"><label>N° Justificatif lié</label><input type="text" id="d-just" placeholder="JUST-2025-08-XXXX"></div>
+            <div class="form-group"><label>Projet / Client</label><input type="text" id="d-projet" placeholder="Général"></div>
+            <div class="form-group"><label>Statut justificatif</label><select id="d-statut"><option value="">—</option><option>✅ Reçu</option><option>⚠️ Manquant</option><option>🔄 En cours</option><option>📤 Demandé</option></select></div>
+            <div class="form-group"><label>⚠️ À vérifier ?</label><select id="d-verif"><option value="Non">Non</option><option value="Oui">Oui — contrôle requis</option></select></div>
+            <div class="form-group full"><label>Commentaire</label><textarea id="d-comment" placeholder="Notes internes…"></textarea></div>
+          </div></div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveDepense()">💾 Sauvegarder</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-depense')">Annuler</button>
           </div>
         </div>
-        <div class="form-card-body">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Date *</label>
-              <input type="date" id="d-date" required>
+        <div class="table-wrapper">
+          <div class="table-toolbar">
+            <input class="table-search" type="search" placeholder="Rechercher par réf, fournisseur, catégorie…" oninput="filterTable('depenses-table-body',this.value)">
+            <span class="badge badge-orange" id="depenses-count">—</span>
+          </div>
+          <div style="overflow-x:auto">
+          <table><thead><tr><th>Réf.</th><th>Date</th><th>Catégorie</th><th>Fournisseur</th><th>Description</th><th style="text-align:right">TTC</th><th>Mode</th><th>N° Justif.</th><th>Statut</th><th>Vérif.</th><th>Actions</th></tr></thead>
+          <tbody id="depenses-table-body"><tr><td colspan="11"><div class="empty-state"><span class="spinner"></span></div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── JUSTIFICATIFS ─────────────────────────────────────────────── -->
+      <div id="panel-justifs" class="panel">
+        <div class="section-header">
+          <div><div class="section-eyebrow">Preuves documentaires</div><div class="section-title">Justificatifs</div></div>
+          <div class="section-divider"></div>
+          <button class="btn btn-primary btn-sm" onclick="openNewJustif()">+ Nouveau justificatif</button>
+        </div>
+        <div class="form-card" id="form-justif" style="display:none">
+          <div class="form-card-header"><div class="form-card-icon">📎</div><div><div class="form-card-title">Enregistrer un justificatif</div><div class="form-card-sub">Ajoutez un lien OneDrive pour accéder au document directement</div></div></div>
+          <div class="form-card-body"><div class="form-grid">
+            <div class="form-group ref-group">
+              <label>Réf. automatique</label>
+              <input type="text" id="j-ref" placeholder="JUST-2025-08-XXXX" readonly>
             </div>
-            <div class="form-group">
-              <label>Catégorie *</label>
-              <select id="d-cat" required>
-                <option value="">— Sélectionner —</option>
-                <option>Logiciels & abonnements</option>
-                <option>Déplacements</option>
-                <option>Équipement informatique</option>
-                <option>Formation & développement</option>
-                <option>Marketing & communication</option>
-                <option>Services professionnels</option>
-                <option>Frais bancaires</option>
-                <option>Bureau & fournitures</option>
-                <option>Restauration professionnelle</option>
-                <option>Autres</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Sous-catégorie</label>
-              <input type="text" id="d-subcat" placeholder="ex. SaaS / Cloud">
-            </div>
-            <div class="form-group">
-              <label>Fournisseur *</label>
-              <input type="text" id="d-fournisseur" placeholder="ex. Adobe" required>
-            </div>
-            <div class="form-group half">
-              <label>Description *</label>
-              <input type="text" id="d-desc" placeholder="ex. Abonnement Creative Cloud" required>
-            </div>
-            <div class="form-group">
-              <label>Montant TTC (€) *</label>
-              <input type="number" id="d-ttc" step="0.01" min="0" placeholder="29.99" required>
-            </div>
-            <div class="form-group">
-              <label>TVA estimée (€)</label>
-              <input type="number" id="d-tva" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-              <label>Mode de paiement</label>
-              <select id="d-mode">
-                <option value="">— Sélectionner —</option>
-                <option>Virement</option><option>Chèque</option>
-                <option>Carte bancaire</option><option>Prélèvement</option>
-                <option>Espèces</option><option>PayPal</option>
-              </select>
-            </div>
-            <div class="form-group">
+            <div class="form-group ref-group">
               <label>N° Justificatif</label>
-              <input type="text" id="d-just" placeholder="JUST-001">
+              <input type="text" id="j-num" placeholder="JUST-2025-08-XXXX">
             </div>
-            <div class="form-group">
-              <label>Projet / Client</label>
-              <input type="text" id="d-projet" placeholder="ex. Général">
-            </div>
-            <div class="form-group">
-              <label>Statut justificatif</label>
-              <select id="d-statut">
-                <option value="">— Sélectionner —</option>
-                <option>✅ Reçu</option>
-                <option>⚠️ Manquant</option>
-                <option>🔄 En cours</option>
-                <option>📤 Demandé</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>⚠️ À vérifier ?</label>
-              <select id="d-verif">
-                <option value="Non">Non</option>
-                <option value="Oui">Oui — nécessite contrôle</option>
-              </select>
-            </div>
+            <div class="form-group"><label>Date *</label><input type="date" id="j-date"></div>
+            <div class="form-group"><label>Type *</label><select id="j-type"><option value="">—</option><option>Facture fournisseur</option><option>Ticket de caisse</option><option>Billet / ticket transport</option><option>Note de frais</option><option>Relevé bancaire</option><option>Contrat</option><option>Reçu</option><option>Autre</option></select></div>
+            <div class="form-group"><label>Fournisseur / Émetteur *</label><input type="text" id="j-fourn" placeholder="Adobe Inc."></div>
+            <div class="form-group"><label>Montant (€)</label><input type="number" id="j-montant" step="0.01" min="0" placeholder="29.99"></div>
+            <div class="form-group"><label>Lié à N° Dépense</label><input type="text" id="j-depense" placeholder="DEP-2025-08-XXXX"></div>
+            <div class="form-group"><label>Format</label><select id="j-format"><option value="">—</option><option>PDF</option><option>Photo / JPG</option><option>PNG</option><option>Papier scanné</option><option>À obtenir</option></select></div>
+            <div class="form-group half"><label>Emplacement / Nom fichier</label><input type="text" id="j-fichier" placeholder="2025/08_Adobe_Creative_Cloud.pdf"></div>
             <div class="form-group full">
-              <label>Commentaire</label>
-              <textarea id="d-comment" placeholder="Notes internes..."></textarea>
+              <label>🔗 Lien OneDrive (lien actif)</label>
+              <div class="link-input-wrap">
+                <input type="url" id="j-link" placeholder="https://onedrive.live.com/…" autocomplete="off">
+                <span class="link-preview" title="Ouvrir le lien" onclick="previewLink()">🔗</span>
+              </div>
             </div>
+            <div class="form-group"><label>Statut</label><select id="j-statut"><option value="">—</option><option>✅ Classé</option><option>⚠️ En attente</option><option>❌ Introuvable</option></select></div>
+          </div></div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveJustif()">💾 Sauvegarder</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-justif')">Annuler</button>
           </div>
         </div>
-        <div class="form-actions">
-          <button class="btn btn-primary" onclick="saveDepense()">💾 Enregistrer</button>
-          <button class="btn btn-secondary" onclick="toggleForm('form-depense')">Annuler</button>
-        </div>
-      </div>
-
-      <!-- Table -->
-      <div class="table-wrapper">
-        <div class="table-toolbar">
-          <input class="table-search" type="search" placeholder="Rechercher..." oninput="filterTable('depenses-table-body', this.value)">
-          <span class="badge badge-orange" id="depenses-count">—</span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th><th>Catégorie</th><th>Fournisseur</th><th>Description</th>
-              <th style="text-align:right">TTC</th><th>Mode</th>
-              <th>N° Justif.</th><th>Statut</th><th>Vérif.</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="depenses-table-body">
-            <tr><td colspan="10"><div class="empty-state"><span class="spinner"></span></div></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ── JUSTIFICATIFS ───────────────────────────────────────────────── -->
-    <div id="panel-justifs" class="panel">
-      <div class="section-header">
-        <div>
-          <div class="section-eyebrow">Preuves documentaires</div>
-          <div class="section-title">Justificatifs</div>
-        </div>
-        <div class="section-divider"></div>
-        <button class="btn btn-primary btn-sm" onclick="toggleForm('form-justif')">
-          <span>+</span> Nouveau justificatif
-        </button>
-      </div>
-
-      <div class="form-card" id="form-justif" style="display:none">
-        <div class="form-card-header">
-          <div class="form-card-icon">📎</div>
-          <div>
-            <div class="form-card-title">Enregistrer un justificatif</div>
-            <div class="form-card-sub">Liez ce document à une dépense existante</div>
+        <div class="table-wrapper">
+          <div class="table-toolbar">
+            <input class="table-search" type="search" placeholder="Rechercher par réf, fournisseur, type…" oninput="filterTable('justifs-table-body',this.value)">
+            <span class="badge badge-sea" id="justifs-count">—</span>
+          </div>
+          <div style="overflow-x:auto">
+          <table><thead><tr><th>Réf.</th><th>Date</th><th>Type</th><th>Fournisseur</th><th style="text-align:right">Montant</th><th>Lié à dép.</th><th>Format</th><th>Fichier</th><th>OneDrive</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="justifs-table-body"><tr><td colspan="11"><div class="empty-state"><span class="spinner"></span></div></td></tr></tbody></table>
           </div>
         </div>
-        <div class="form-card-body">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>N° Justificatif *</label>
-              <input type="text" id="j-num" placeholder="JUST-001" required>
-            </div>
-            <div class="form-group">
-              <label>Date *</label>
-              <input type="date" id="j-date" required>
-            </div>
-            <div class="form-group">
-              <label>Type *</label>
-              <select id="j-type" required>
-                <option value="">— Sélectionner —</option>
-                <option>Facture fournisseur</option>
-                <option>Ticket de caisse</option>
-                <option>Billet / ticket transport</option>
-                <option>Note de frais</option>
-                <option>Relevé bancaire</option>
-                <option>Contrat</option><option>Reçu</option><option>Autre</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Fournisseur / Émetteur *</label>
-              <input type="text" id="j-fourn" placeholder="ex. Adobe Inc." required>
-            </div>
-            <div class="form-group">
-              <label>Montant (€)</label>
-              <input type="number" id="j-montant" step="0.01" min="0" placeholder="29.99">
-            </div>
-            <div class="form-group">
-              <label>Lié à N° Dépense</label>
-              <input type="text" id="j-depense" placeholder="ex. Dépense ligne 3">
-            </div>
-            <div class="form-group">
-              <label>Format</label>
-              <select id="j-format">
-                <option value="">— Sélectionner —</option>
-                <option>PDF</option><option>Photo / JPG</option>
-                <option>PNG</option><option>Papier scanné</option><option>À obtenir</option>
-              </select>
-            </div>
-            <div class="form-group half">
-              <label>Emplacement / Nom fichier</label>
-              <input type="text" id="j-fichier" placeholder="2025/01_Adobe_Creative_Cloud.pdf">
-            </div>
-            <div class="form-group">
-              <label>Statut</label>
-              <select id="j-statut">
-                <option value="">— Sélectionner —</option>
-                <option>✅ Classé</option>
-                <option>⚠️ En attente</option>
-                <option>❌ Introuvable</option>
-              </select>
-            </div>
-          </div>
+      </div>
+
+      <!-- ── SYNTHÈSE ──────────────────────────────────────────────────── -->
+      <div id="panel-synthese" class="panel">
+        <div class="section-header">
+          <div><div class="section-eyebrow">Récapitulatif automatique</div><div class="section-title">Synthèse mensuelle</div></div>
+          <div class="section-divider"></div>
         </div>
-        <div class="form-actions">
-          <button class="btn btn-primary" onclick="saveJustif()">💾 Enregistrer</button>
-          <button class="btn btn-secondary" onclick="toggleForm('form-justif')">Annuler</button>
+        <div class="synth-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:28px">
+          <div class="synth-card sea"><div class="synth-label">CA annuel TTC</div><div class="synth-value" id="s-ca">…</div></div>
+          <div class="synth-card green"><div class="synth-label">Encaissé HT</div><div class="synth-value positive" id="s-enc">…</div></div>
+          <div class="synth-card sand"><div class="synth-label">Dépenses totales</div><div class="synth-value" id="s-dep">…</div></div>
+          <div class="synth-card green"><div class="synth-label">Trésorerie nette</div><div class="synth-value positive" id="s-treso">…</div></div>
+        </div>
+        <div class="table-wrapper">
+          <div class="table-toolbar"><span style="font-weight:600;font-size:14px;color:var(--grey-700)">Évolution mensuelle — CA TTC</span></div>
+          <div id="monthly-bars" style="padding:8px 0 12px"></div>
+        </div>
+        <div class="table-wrapper" style="margin-top:20px">
+          <div class="table-toolbar"><span style="font-weight:600;font-size:14px;color:var(--grey-700)">Dépenses par catégorie</span></div>
+          <table><thead><tr><th>Catégorie</th><th style="text-align:right">Total (€)</th><th style="text-align:right">% du total</th></tr></thead>
+          <tbody id="cat-table-body"></tbody></table>
         </div>
       </div>
 
-      <div class="table-wrapper">
-        <div class="table-toolbar">
-          <input class="table-search" type="search" placeholder="Rechercher..." oninput="filterTable('justifs-table-body', this.value)">
-          <span class="badge badge-sea" id="justifs-count">—</span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>N° Justif.</th><th>Date</th><th>Type</th>
-              <th>Fournisseur</th><th style="text-align:right">Montant</th>
-              <th>Lié à</th><th>Format</th><th>Emplacement</th><th>Statut</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="justifs-table-body">
-            <tr><td colspan="10"><div class="empty-state"><span class="spinner"></span></div></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
 
-    <!-- ── SYNTHÈSE ────────────────────────────────────────────────────── -->
-    <div id="panel-synthese" class="panel">
-      <div class="section-header">
-        <div>
-          <div class="section-eyebrow">Récapitulatif automatique</div>
-          <div class="section-title">Synthèse mensuelle</div>
-        </div>
-        <div class="section-divider"></div>
-      </div>
-
-      <div class="synth-grid" style="grid-template-columns: repeat(4,1fr); margin-bottom:28px">
-        <div class="synth-card sea">
-          <div class="synth-label">CA annuel TTC</div>
-          <div class="synth-value" id="s-ca">…</div>
-        </div>
-        <div class="synth-card green">
-          <div class="synth-label">Encaissé HT</div>
-          <div class="synth-value positive" id="s-enc">…</div>
-        </div>
-        <div class="synth-card sand">
-          <div class="synth-label">Dépenses totales</div>
-          <div class="synth-value" id="s-dep">…</div>
-        </div>
-        <div class="synth-card green">
-          <div class="synth-label">Trésorerie nette</div>
-          <div class="synth-value positive" id="s-treso">…</div>
-        </div>
-      </div>
-
-      <!-- Monthly bars -->
-      <div class="table-wrapper">
-        <div class="table-toolbar">
-          <span style="font-weight:600;font-size:14px;color:var(--grey-700)">Évolution mensuelle — CA TTC</span>
-        </div>
-        <div id="monthly-bars" style="padding:8px 0 12px"></div>
-      </div>
-
-      <!-- Catégories -->
-      <div class="table-wrapper" style="margin-top:20px">
-        <div class="table-toolbar">
-          <span style="font-weight:600;font-size:14px;color:var(--grey-700)">Dépenses par catégorie</span>
-        </div>
-        <table>
-          <thead>
-            <tr><th>Catégorie</th><th style="text-align:right">Total (€)</th><th style="text-align:right">% du total</th></tr>
-          </thead>
-          <tbody id="cat-table-body"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div><!-- /content -->
-</div><!-- /main -->
-
-<!-- Toast container -->
 <div id="toast-container"></div>
 
+<!-- Preview OneDrive link from form -->
 <script>
-// ── UTILS ──────────────────────────────────────────────────────────────────
-const fmt = (n) => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR'}).format(n||0);
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
-
-function toast(msg, type='info', duration=3500) {
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  const icons = {success:'✅', error:'❌', info:'ℹ️'};
-  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
-  document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), duration);
+function previewLink(){
+  const v = document.getElementById("j-link").value.trim();
+  if(v && v.startsWith("http")) window.open(v,"_blank","noopener");
 }
-
-function toggleForm(id) {
-  const el = document.getElementById(id);
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
-function filterTable(tbodyId, q) {
-  const rows = document.getElementById(tbodyId).querySelectorAll('tr[data-searchable]');
-  const lq = q.toLowerCase();
-  rows.forEach(r => {
-    r.style.display = r.getAttribute('data-searchable').toLowerCase().includes(lq) ? '' : 'none';
-  });
-}
-
-function showPanel(name) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('panel-' + name).classList.add('active');
-  const btns = document.querySelectorAll('.nav-item');
-  const order = ['dashboard','recettes','depenses','justifs','synthese'];
-  const idx = order.indexOf(name);
-  if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
-  if (name === 'synthese') buildSynthese();
-}
-
-function encBadge(v) {
-  if (v === 'Oui') return '<span class="badge badge-green">✅ Oui</span>';
-  if (v === 'Non') return '<span class="badge badge-red">Non</span>';
-  return '<span class="badge badge-orange">⏳ Attente</span>';
-}
-function statutBadge(v) {
-  if (!v) return '—';
-  if (v.includes('Reçu') || v.includes('Classé')) return `<span class="badge badge-green">${v}</span>`;
-  if (v.includes('Manquant') || v.includes('Attente') || v.includes('Introuvable')) return `<span class="badge badge-orange">${v}</span>`;
-  return `<span class="badge badge-grey">${v}</span>`;
-}
-function verifBadge(v) {
-  return v === 'Oui'
-    ? '<span class="badge badge-orange">⚠️ Oui</span>'
-    : '<span class="badge badge-green">Non</span>';
-}
-
-// ── FIREBASE CRUD ──────────────────────────────────────────────────────────
-let _ready = false;
-document.addEventListener('firebase-ready', () => {
-  _ready = true;
-  loadAll();
-});
-
-// Check if config is placeholder
-setTimeout(() => {
-  if (!_ready) document.getElementById('configBanner').style.display = 'flex';
-}, 2000);
-
-// In-memory cache
-let DATA = { recettes: [], depenses: [], justifs: [] };
-
-async function loadAll() {
-  await Promise.all([loadRecettes(), loadDepenses(), loadJustifs()]);
-  buildDashboard();
-}
-
-async function loadRecettes() {
-  const snap = await window._getDocs(
-    window._query(window._collection(window._db, 'recettes'), window._orderBy('date', 'desc'))
-  );
-  DATA.recettes = snap.docs.map(d => ({id: d.id, ...d.data()}));
-  renderRecettes();
-}
-async function loadDepenses() {
-  const snap = await window._getDocs(
-    window._query(window._collection(window._db, 'depenses'), window._orderBy('date', 'desc'))
-  );
-  DATA.depenses = snap.docs.map(d => ({id: d.id, ...d.data()}));
-  renderDepenses();
-}
-async function loadJustifs() {
-  const snap = await window._getDocs(
-    window._query(window._collection(window._db, 'justifs'), window._orderBy('date', 'desc'))
-  );
-  DATA.justifs = snap.docs.map(d => ({id: d.id, ...d.data()}));
-  renderJustifs();
-}
-
-// ── SAVE ───────────────────────────────────────────────────────────────────
-async function saveRecette() {
-  const ht = parseFloat(document.getElementById('r-ht').value) || 0;
-  const tva= parseFloat(document.getElementById('r-tva').value) || 0;
-  const ttcInput = document.getElementById('r-ttc').value;
-  const ttc = ttcInput ? parseFloat(ttcInput) : ht + tva;
-
-  const data = {
-    date:       document.getElementById('r-date').value,
-    client:     document.getElementById('r-client').value,
-    prestation: document.getElementById('r-prestation').value,
-    facture:    document.getElementById('r-facture').value,
-    ht, tva, ttc,
-    mode:       document.getElementById('r-mode').value,
-    encaisse:   document.getElementById('r-enc').value,
-    commentaire:document.getElementById('r-comment').value,
-    createdAt:  window._Timestamp.now()
-  };
-  if (!data.date || !data.client || !data.prestation) { toast('Remplissez les champs obligatoires *', 'error'); return; }
-  try {
-    await window._addDoc(window._collection(window._db, 'recettes'), data);
-    toast('Recette enregistrée ✓', 'success');
-    document.getElementById('form-recette').style.display = 'none';
-    await loadRecettes(); buildDashboard();
-  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
-}
-
-async function saveDepense() {
-  const data = {
-    date:       document.getElementById('d-date').value,
-    categorie:  document.getElementById('d-cat').value,
-    souscat:    document.getElementById('d-subcat').value,
-    fournisseur:document.getElementById('d-fournisseur').value,
-    description:document.getElementById('d-desc').value,
-    ttc:        parseFloat(document.getElementById('d-ttc').value) || 0,
-    tva:        parseFloat(document.getElementById('d-tva').value) || 0,
-    mode:       document.getElementById('d-mode').value,
-    nojustif:   document.getElementById('d-just').value,
-    projet:     document.getElementById('d-projet').value,
-    statut:     document.getElementById('d-statut').value,
-    averifier:  document.getElementById('d-verif').value,
-    commentaire:document.getElementById('d-comment').value,
-    createdAt:  window._Timestamp.now()
-  };
-  if (!data.date || !data.categorie || !data.fournisseur) { toast('Remplissez les champs obligatoires *', 'error'); return; }
-  try {
-    await window._addDoc(window._collection(window._db, 'depenses'), data);
-    toast('Dépense enregistrée ✓', 'success');
-    document.getElementById('form-depense').style.display = 'none';
-    await loadDepenses(); buildDashboard();
-  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
-}
-
-async function saveJustif() {
-  const data = {
-    numero:   document.getElementById('j-num').value,
-    date:     document.getElementById('j-date').value,
-    type:     document.getElementById('j-type').value,
-    fourn:    document.getElementById('j-fourn').value,
-    montant:  parseFloat(document.getElementById('j-montant').value) || 0,
-    depense:  document.getElementById('j-depense').value,
-    format:   document.getElementById('j-format').value,
-    fichier:  document.getElementById('j-fichier').value,
-    statut:   document.getElementById('j-statut').value,
-    createdAt:window._Timestamp.now()
-  };
-  if (!data.numero || !data.date || !data.fourn) { toast('Remplissez les champs obligatoires *', 'error'); return; }
-  try {
-    await window._addDoc(window._collection(window._db, 'justifs'), data);
-    toast('Justificatif enregistré ✓', 'success');
-    document.getElementById('form-justif').style.display = 'none';
-    await loadJustifs(); buildDashboard();
-  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
-}
-
-// ── DELETE ──────────────────────────────────────────────────────────────────
-async function deleteRecord(col, id, reloadFn) {
-  if (!confirm('Supprimer cet enregistrement ?')) return;
-  try {
-    await window._deleteDoc(window._doc(window._db, col, id));
-    toast('Supprimé ✓', 'success');
-    await reloadFn(); buildDashboard();
-  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
-}
-
-// ── RENDER ──────────────────────────────────────────────────────────────────
-function renderRecettes() {
-  const tbody = document.getElementById('recettes-table-body');
-  document.getElementById('recettes-count').textContent = DATA.recettes.length + ' entrées';
-  if (!DATA.recettes.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💰</div><div class="empty-title">Aucune recette enregistrée</div><div class="empty-sub">Cliquez sur "+ Nouvelle recette" pour commencer</div></div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML = DATA.recettes.map(r => `
-    <tr data-searchable="${r.client} ${r.prestation} ${r.facture} ${r.date}">
-      <td>${fmtDate(r.date)}</td>
-      <td><strong>${r.client||'—'}</strong></td>
-      <td style="color:var(--grey-500);font-size:12px">${r.prestation||'—'}</td>
-      <td><span class="badge badge-sea">${r.facture||'—'}</span></td>
-      <td class="td-amount positive">${fmt(r.ht)}</td>
-      <td class="td-amount">${fmt(r.ttc)}</td>
-      <td style="font-size:12px">${r.mode||'—'}</td>
-      <td>${encBadge(r.encaisse)}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('recettes','${r.id}',loadRecettes)">🗑</button></td>
-    </tr>`).join('');
-}
-
-function renderDepenses() {
-  const tbody = document.getElementById('depenses-table-body');
-  document.getElementById('depenses-count').textContent = DATA.depenses.length + ' entrées';
-  if (!DATA.depenses.length) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">💳</div><div class="empty-title">Aucune dépense enregistrée</div><div class="empty-sub">Cliquez sur "+ Nouvelle dépense" pour commencer</div></div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML = DATA.depenses.map(d => `
-    <tr data-searchable="${d.categorie} ${d.fournisseur} ${d.description} ${d.date}">
-      <td>${fmtDate(d.date)}</td>
-      <td><span class="badge badge-sea" style="font-size:10px">${d.categorie||'—'}</span></td>
-      <td><strong>${d.fournisseur||'—'}</strong></td>
-      <td style="color:var(--grey-500);font-size:12px">${d.description||'—'}</td>
-      <td class="td-amount negative">${fmt(d.ttc)}</td>
-      <td style="font-size:12px">${d.mode||'—'}</td>
-      <td style="font-size:12px;font-family:var(--font-mono)">${d.nojustif||'—'}</td>
-      <td>${statutBadge(d.statut)}</td>
-      <td>${verifBadge(d.averifier)}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('depenses','${d.id}',loadDepenses)">🗑</button></td>
-    </tr>`).join('');
-}
-
-function renderJustifs() {
-  const tbody = document.getElementById('justifs-table-body');
-  document.getElementById('justifs-count').textContent = DATA.justifs.length + ' entrées';
-  if (!DATA.justifs.length) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">📎</div><div class="empty-title">Aucun justificatif enregistré</div><div class="empty-sub">Cliquez sur "+ Nouveau justificatif"</div></div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML = DATA.justifs.map(j => `
-    <tr data-searchable="${j.numero} ${j.fourn} ${j.type} ${j.date}">
-      <td><span class="badge badge-sea" style="font-family:var(--font-mono)">${j.numero||'—'}</span></td>
-      <td>${fmtDate(j.date)}</td>
-      <td style="font-size:12px">${j.type||'—'}</td>
-      <td><strong>${j.fourn||'—'}</strong></td>
-      <td class="td-amount">${fmt(j.montant)}</td>
-      <td style="font-size:12px">${j.depense||'—'}</td>
-      <td style="font-size:12px">${j.format||'—'}</td>
-      <td style="font-size:11px;color:var(--grey-500);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${j.fichier||''}">${j.fichier||'—'}</td>
-      <td>${statutBadge(j.statut)}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('justifs','${j.id}',loadJustifs)">🗑</button></td>
-    </tr>`).join('');
-}
-
-// ── DASHBOARD ──────────────────────────────────────────────────────────────
-function buildDashboard() {
-  const caAnnual  = DATA.recettes.reduce((s,r) => s + (r.ttc||0), 0);
-  const encaisse  = DATA.recettes.filter(r => r.encaisse === 'Oui').reduce((s,r) => s + (r.ht||0), 0);
-  const depTotal  = DATA.depenses.reduce((s,d) => s + (d.ttc||0), 0);
-  const treso     = encaisse - depTotal;
-  const missing   = DATA.depenses.filter(d => d.statut && d.statut.includes('Manquant')).length
-                  + DATA.justifs.filter(j => j.statut && (j.statut.includes('Attente') || j.statut.includes('Introuvable'))).length;
-
-  // KPI hero
-  const now = new Date(); const curMonth = now.getMonth();
-  const caMois = DATA.recettes
-    .filter(r => r.date && new Date(r.date).getMonth() === curMonth)
-    .reduce((s,r) => s + (r.ttc||0), 0);
-  const depMois = DATA.depenses
-    .filter(d => d.date && new Date(d.date).getMonth() === curMonth)
-    .reduce((s,d) => s + (d.ttc||0), 0);
-
-  document.getElementById('kpi-ca').textContent    = fmt(caMois);
-  document.getElementById('kpi-dep').textContent   = fmt(depMois);
-  document.getElementById('kpi-justif').textContent= missing;
-
-  // Cards
-  document.getElementById('d-ca-annual').textContent = fmt(caAnnual);
-  document.getElementById('d-encaisse').textContent  = fmt(encaisse);
-  document.getElementById('d-depenses').textContent  = fmt(depTotal);
-  const tresoEl = document.getElementById('d-treso');
-  tresoEl.textContent = fmt(treso);
-  tresoEl.className   = 'synth-value ' + (treso >= 0 ? 'positive' : 'negative');
-  document.getElementById('d-missing').textContent = missing;
-  document.getElementById('d-nb-fac').textContent  = DATA.recettes.length;
-
-  // Recent activity
-  const recent = [
-    ...DATA.recettes.slice(0,5).map(r => ({...r, _type:'recette'})),
-    ...DATA.depenses.slice(0,5).map(d => ({...d, _type:'depense'}))
-  ].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,8);
-
-  document.getElementById('recent-count').textContent = recent.length + ' entrées récentes';
-  const rb = document.getElementById('recent-table-body');
-  if (!recent.length) {
-    rb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Aucune activité</div><div class="empty-sub">Commencez par saisir une recette ou une dépense</div></div></td></tr>`;
-    return;
-  }
-  rb.innerHTML = recent.map(r => {
-    const isRec = r._type === 'recette';
-    const label = isRec ? `<span class="badge badge-green">Recette</span>` : `<span class="badge badge-orange">Dépense</span>`;
-    const name  = isRec ? r.client : r.fournisseur;
-    const desc  = isRec ? r.prestation : r.description;
-    const amt   = isRec ? r.ttc : r.ttc;
-    const amtClass = isRec ? 'positive' : 'negative';
-    const sign  = isRec ? '+' : '−';
-    const stat  = isRec ? encBadge(r.encaisse) : statutBadge(r.statut);
-    return `<tr>
-      <td>${fmtDate(r.date)}</td><td>${label}</td>
-      <td style="font-size:12px;color:var(--grey-500)">${desc||'—'}</td>
-      <td><strong>${name||'—'}</strong></td>
-      <td class="td-amount ${amtClass}">${sign} ${fmt(amt)}</td>
-      <td>${stat}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ── SYNTHÈSE ────────────────────────────────────────────────────────────────
-function buildSynthese() {
-  const caAnnual = DATA.recettes.reduce((s,r) => s + (r.ttc||0), 0);
-  const encAnnual= DATA.recettes.filter(r=>r.encaisse==='Oui').reduce((s,r) => s + (r.ht||0), 0);
-  const depAnnual= DATA.depenses.reduce((s,d) => s + (d.ttc||0), 0);
-  const treso    = encAnnual - depAnnual;
-
-  document.getElementById('s-ca').textContent   = fmt(caAnnual);
-  document.getElementById('s-enc').textContent  = fmt(encAnnual);
-  document.getElementById('s-dep').textContent  = fmt(depAnnual);
-  const te = document.getElementById('s-treso');
-  te.textContent = fmt(treso);
-  te.className   = 'synth-value ' + (treso >= 0 ? 'positive' : 'negative');
-
-  // Monthly bars
-  const months = ['Janvier','Février','Mars','Avril','Mai','Juin',
-                  'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const monthlyCA = Array(12).fill(0);
-  DATA.recettes.forEach(r => {
-    if (r.date) { const m = new Date(r.date).getMonth(); monthlyCA[m] += r.ttc||0; }
-  });
-  const maxCA = Math.max(...monthlyCA, 1);
-  const bars = document.getElementById('monthly-bars');
-  bars.innerHTML = months.map((m,i) => {
-    const pct = ((monthlyCA[i] / maxCA) * 100).toFixed(1);
-    const nb  = DATA.recettes.filter(r => r.date && new Date(r.date).getMonth() === i).length;
-    const isMax = monthlyCA[i] === maxCA && maxCA > 0;
-    return `<div class="month-row">
-      <div class="month-name">${m} ${isMax ? '⭐' : ''}</div>
-      <div class="month-bar-wrap"><div class="month-bar" style="width:${pct}%"></div></div>
-      <div class="month-amount">${monthlyCA[i] > 0 ? fmt(monthlyCA[i]) : '—'}</div>
-      <div class="month-count">${nb > 0 ? nb + ' fac.' : ''}</div>
-    </div>`;
-  }).join('');
-
-  // Categories
-  const cats = {};
-  DATA.depenses.forEach(d => {
-    if (d.categorie) cats[d.categorie] = (cats[d.categorie]||0) + (d.ttc||0);
-  });
-  const total = Object.values(cats).reduce((a,b) => a+b, 0) || 1;
-  const sorted = Object.entries(cats).sort((a,b) => b[1]-a[1]);
-  const cb = document.getElementById('cat-table-body');
-  if (!sorted.length) {
-    cb.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--grey-500)">Aucune dépense enregistrée</td></tr>`;
-    return;
-  }
-  cb.innerHTML = sorted.map(([cat, val]) => `
-    <tr>
-      <td><span class="badge badge-sea">${cat}</span></td>
-      <td class="td-amount">${fmt(val)}</td>
-      <td class="td-amount" style="color:var(--grey-500)">${((val/total)*100).toFixed(1)} %</td>
-    </tr>`).join('');
-}
-
-// ── EXPORT ──────────────────────────────────────────────────────────────────
-function exportData() {
-  const rows = [
-    ['=== RECETTES ==='],
-    ['Date','Client','Prestation','Facture','HT','TVA','TTC','Mode','Encaissé','Commentaire'],
-    ...DATA.recettes.map(r => [r.date,r.client,r.prestation,r.facture,r.ht,r.tva,r.ttc,r.mode,r.encaisse,r.commentaire]),
-    [],['=== DÉPENSES ==='],
-    ['Date','Catégorie','Fournisseur','Description','TTC','TVA','Mode','N°Justif','Statut','À vérifier'],
-    ...DATA.depenses.map(d => [d.date,d.categorie,d.fournisseur,d.description,d.ttc,d.tva,d.mode,d.nojustif,d.statut,d.averifier]),
-    [],['=== JUSTIFICATIFS ==='],
-    ['N°','Date','Type','Fournisseur','Montant','Lié à','Format','Fichier','Statut'],
-    ...DATA.justifs.map(j => [j.numero,j.date,j.type,j.fourn,j.montant,j.depense,j.format,j.fichier,j.statut])
-  ];
-  const csv = rows.map(r => r.join('\t')).join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/tab-separated-values;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
-  a.download = `Gestion_MicroEntreprise_${new Date().toISOString().slice(0,10)}.tsv`;
-  a.click();
-  toast('Export téléchargé ✓', 'success');
-}
-
-// Set today's date in all date inputs on load
-window.addEventListener('load', () => {
-  const today = new Date().toISOString().split('T')[0];
-  document.querySelectorAll('input[type="date"]').forEach(i => i.value = today);
-});
-
-// Auto-calculate TTC when HT or TVA changes
-['r-ht','r-tva'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    const ht  = parseFloat(document.getElementById('r-ht').value)  || 0;
-    const tva = parseFloat(document.getElementById('r-tva').value) || 0;
-    document.getElementById('r-ttc').value = (ht + tva).toFixed(2);
-  });
-});
 </script>
+
+<!-- App entry point -->
+<script type="module" src="app.js"></script>
 </body>
 </html>
