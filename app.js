@@ -13,7 +13,25 @@ import { getAuth, signInAnonymously, signOut, onAuthStateChanged }
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 // Only the projectId lives here. Everything else is fetched from Firestore.
 // Replace with your actual Firebase project ID.
-const PROJECT_ID = "suivi-financier-695df";
+// const PROJECT_ID = "suivi-financier-695df";
+// firebase config
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCYRK4wqehW0TNQij2Z-THgtUaf8bDHyNE",
+  authDomain: "suivi-financier-695df.firebaseapp.com",
+  projectId: "suivi-financier-695df",
+  storageBucket: "suivi-financier-695df.firebasestorage.app",
+  messagingSenderId: "724463087611",
+  appId: "1:724463087611:web:cc7eda70cec34304bee55e"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
 // ── STATE ──────────────────────────────────────────────────────────────────
 let db, auth;
