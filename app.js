@@ -13,7 +13,7 @@ import { getAuth, signInAnonymously, signOut, onAuthStateChanged }
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 // Only the projectId lives here. Everything else is fetched from Firestore.
 // Replace with your actual Firebase project ID.
-const PROJECT_ID = "YOUR_PROJECT_ID";
+const PROJECT_ID = "suivi-financier-695df";
 
 // ── STATE ──────────────────────────────────────────────────────────────────
 let db, auth;
