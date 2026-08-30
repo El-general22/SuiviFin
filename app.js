@@ -42,7 +42,7 @@ let editingId = { recettes: null, depenses: null, justifs: null };
 async function boot() {
   try {
     // Bootstrap app to read _config/app from Firestore
-    const bootstrap = initializeApp({ projectId: PROJECT_ID, apiKey: "bootstrap" }, "bootstrap");
+    const bootstrap = initializeApp({ projectId: PROJECT_ID, apiKey: "AIzaSyCYRK4wqehW0TNQij2Z-THgtUaf8bDHyNE" }, "bootstrap");
     const bDb = getFirestore(bootstrap);
 
     const [cfgSnap, authSnap] = await Promise.all([
