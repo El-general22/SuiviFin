@@ -13,7 +13,7 @@ import { getAuth, signInAnonymously, signOut, onAuthStateChanged }
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 // Only the projectId lives here. Everything else is fetched from Firestore.
 // Replace with your actual Firebase project ID.
-// const PROJECT_ID = "suivi-financier-695df";
+const PROJECT_ID = "suivi-financier-695df";
 // firebase config
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
