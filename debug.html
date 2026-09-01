@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Firebase Debug — Consult-Gherio</title>
+<style>
+body{font-family:monospace;background:#0A1628;color:#E0F4F7;padding:32px;line-height:1.8;font-size:14px}
+h2{color:#3AACBF;margin-bottom:16px}
+.ok{color:#5DD9B0}.err{color:#FCA5A5}.warn{color:#FCD34D}.info{color:#93C5FD}
+.box{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:16px 20px;margin-bottom:12px}
+input{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:8px 12px;color:#fff;font-family:monospace;font-size:14px;width:100%;margin-top:4px}
+button{background:#1B8A9E;color:#fff;border:none;border-radius:4px;padding:10px 20px;font-size:14px;cursor:pointer;margin-top:8px}
+button:hover{background:#3AACBF}
+label{font-size:12px;color:#7A8B96;text-transform:uppercase;letter-spacing:.5px}
+</style>
+</head>
+<body>
+<h2>🔍 Firebase Diagnostic — Consult-Gherio</h2>
+<p class="info">This page tests each step of the Firebase connection. Share the results with Claude.</p>
+<br>
+
+<div class="box">
+  <label>Step 1 — Paste your Firebase Config JSON</label><br>
+  <textarea id="cfg" rows="10" style="width:100%;margin-top:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:12px;color:#fff;font-family:monospace;font-size:12px;resize:vertical" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "your-project.firebaseapp.com",
+  "projectId": "your-project-id",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123456789:web:abc..."
+}'></textarea>
+  <br>
+  <label>SHA-256 Password Hash</label>
+  <input id="hash" placeholder="paste your sha256 hash here">
+  <br><br>
+  <button onclick="runDiag()">▶ Run Full Diagnostic</button>
+</div>
+
+<div id="results"></div>
+
+<script type="module">
+import { initializeApp, getApps, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInAnonymously, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const out = document.getElementById('results');
+function log(msg, cls='info') {
+  out.innerHTML += `<div class="box ${cls}">${msg}</div>`;
+}
+function ok(label, detail='')  { log(`✅ <span class="ok">${label}</span>${detail?' — '+detail:''}`, 'ok'); }
+function err(label, detail='') { log(`❌ <span class="err">${label}</span>${detail?'<br><span style="font-size:12px;opacity:.8">'+detail+'</span>':''}`, 'err'); }
+function info(msg)             { log(`ℹ️ ${msg}`, 'info'); }
+
+window.runDiag = async function() {
+  out.innerHTML = '';
+  info('Starting diagnostic…');
+
+  // Step 1: parse config
+  let cfg;
+  try {
+    cfg = JSON.parse(document.getElementById('cfg').value.trim());
+    ok('Config JSON parsed', `projectId = <strong>${cfg.projectId}</strong>`);
+  } catch(e) {
+    err('Config JSON is invalid', e.message + '<br>Make sure you paste valid JSON (double quotes, no trailing commas)');
+    return;
+  }
+
+  // Step 2: required fields
+  const required = ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'];
+  const missing = required.filter(k => !cfg[k]);
+  if (missing.length) { err('Missing config fields', missing.join(', ')); return; }
+  ok('All required config fields present');
+
+  // Step 3: init Firebase
+  let app, db, auth;
+  try {
+    // Clean up any existing app
+    getApps().forEach(a => { try { deleteApp(a); } catch{} });
+    app  = initializeApp(cfg);
+    db   = getFirestore(app);
+    auth = getAuth(app);
+    ok('Firebase app initialized');
+  } catch(e) {
+    err('Firebase init failed', e.message); return;
+  }
+
+  // Step 4: Firestore read (unauthenticated)
+  info('Testing Firestore read (unauthenticated)…');
+  try {
+    const snap = await getDocs(collection(db, '_config'));
+    ok('Firestore reachable (unauthenticated)', `_config collection has ${snap.size} document(s)`);
+    snap.docs.forEach(d => info(`&nbsp;&nbsp;→ _config/<strong>${d.id}</strong> : ${JSON.stringify(d.data()).slice(0,80)}…`));
+  } catch(e) {
+    err('Firestore read failed', e.message
+      + '<br>Fix: Go to Firestore → Rules → make sure _config is publicly readable'
+      + '<br><code>match /_config/{doc} { allow read: if true; }</code>');
+    // continue anyway
+  }
+
+  // Step 5: Anonymous Auth
+  info('Testing Anonymous Auth…');
+  try {
+    const cred = await signInAnonymously(auth);
+    ok('Anonymous Auth works', `uid = ${cred.user.uid}`);
+
+    // Step 6: Firestore write (authenticated)
+    info('Testing authenticated Firestore write…');
+    try {
+      const ref = await addDoc(collection(db, '_diag_test'), { ts: Timestamp.now(), test: true });
+      ok('Firestore write works', `doc id = ${ref.id}`);
+      // Clean up
+      await deleteDoc(doc(db, '_diag_test', ref.id));
+      ok('Firestore delete works (cleanup done)');
+    } catch(e) {
+      err('Firestore write failed', e.message
+        + '<br>Fix: Make sure authenticated users can write: <code>allow read, write: if request.auth != null;</code>');
+    }
+
+    await signOut(auth);
+  } catch(e) {
+    err('Anonymous Auth failed', e.message
+      + '<br>Fix: Firebase Console → Authentication → Sign-in method → Enable "Anonymous"');
+  }
+
+  // Step 7: SHA-256 test
+  const hash = document.getElementById('hash').value.trim();
+  if (hash) {
+    info('Testing password hash…');
+    try {
+      const testPwd = prompt('Enter your password to verify the hash:');
+      if (testPwd) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(testPwd));
+        const computed = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+        if (computed === hash) ok('Password hash matches ✓');
+        else err('Password hash does NOT match', `Expected: ${hash}<br>Got: ${computed}`);
+      }
+    } catch(e) { err('Hash test failed', e.message); }
+  }
+
+  log('<br><strong class="ok">Diagnostic complete.</strong> Share these results with Claude.', 'info');
+};
+</script>
+</body>
+</html>
