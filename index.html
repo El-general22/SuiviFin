@@ -20,7 +20,7 @@ import { initializeApp } from "firebase/app";
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
-const FIREBASE_CONFIG = {
+const firebaseConfig = {
   apiKey: "AIzaSyCYRK4wqehW0TNQij2Z-THgtUaf8bDHyNE",
   authDomain: "suivi-financier-695df.firebaseapp.com",
   projectId: "suivi-financier-695df",
@@ -30,7 +30,7 @@ const FIREBASE_CONFIG = {
 };
 
 // Initialize Firebase
-const app = initializeApp(FIREBASE_CONFIG);
+const app = initializeApp(firebaseConfig);
   // SHA-256 hash of your chosen password.
   // Generate at: https://emn178.github.io/online-tools/sha256.html
   const PASSWORD_HASH = "dce3a6f7ae3d659d3d0d31fc7dbd8d8ad7e8a0cd492dee235234bea8f974c665";
@@ -459,7 +459,7 @@ try {
   setLtxt('Initialisation Firebase…');
 
   // Validate config was filled in
-  if (!FIREBASE_CONFIG.projectId || FIREBASE_CONFIG.projectId.includes('PASTE')) {
+  if (!firebaseConfig.projectId || firebaseConfig.projectId.includes('PASTE')) {
     throw new Error('<br>Le fichier HTML contient encore des valeurs placeholder.<br>'
       +'<code>Ouvrez index.html et remplacez les valeurs PASTE_YOUR_… par votre config Firebase.</code>');
   }
@@ -468,7 +468,7 @@ try {
       +'<code>Générez un SHA-256 sur https://emn178.github.io/online-tools/sha256.html</code>');
   }
 
-  const app = initializeApp(FIREBASE_CONFIG);
+  const app = initializeApp(firebaseConfig);
   db   = getFirestore(app);
   auth = getAuth(app);
 
