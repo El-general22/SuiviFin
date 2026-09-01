@@ -6,915 +6,766 @@
 <title>Gestion Financière — Consult-Gherio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- ════════════════════════════════════════════════════════════════════════
+  FIREBASE CONFIG — paste your values from Firebase Console here.
+  These are NOT secrets: they identify your project (like a username).
+  Security comes from Firestore Rules + Firebase Auth, not from hiding these.
+  Go to: Firebase Console → Project Settings → Your apps → Web app → Config
+════════════════════════════════════════════════════════════════════════════ -->
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCYRK4wqehW0TNQij2Z-THgtUaf8bDHyNE",
+    authDomain: "suivi-financier-695df.firebaseapp.com",
+    projectId: "suivi-financier-695df",
+    storageBucket: "suivi-financier-695df.firebasestorage.app",
+    messagingSenderId: "724463087611",
+    appId: "1:724463087611:web:cc7eda70cec34304bee55e"
+  };
+  // SHA-256 hash of your chosen password.
+  // Generate at: https://emn178.github.io/online-tools/sha256.html
+  const PASSWORD_HASH = "dce3a6f7ae3d659d3d0d31fc7dbd8d8ad7e8a0cd492dee235234bea8f974c665";
+</script>
+
 <style>
-:root {
+:root{
   --sea-900:#062B36;--sea-700:#0D5F73;--sea-600:#1B8A9E;--sea-400:#3AACBF;--sea-100:#E0F4F7;
   --sand:#D4A574;--sand-lt:#F5E6D3;--navy:#0A1628;
-  --white:#FFFFFF;--grey-50:#F8FAFB;--grey-100:#EEF2F5;--grey-300:#C8D2DA;
-  --grey-500:#7A8B96;--grey-700:#3D4F5C;--grey-900:#1A252F;
-  --r-sm:6px;--r-md:12px;--r-lg:20px;
-  --sh-sm:0 1px 4px rgba(10,22,40,.07);--sh-md:0 4px 16px rgba(10,22,40,.10);--sh-lg:0 12px 40px rgba(10,22,40,.18);
-  --sh-sea:0 0 0 3px rgba(27,138,158,.25);
-  --nav-w:72px;
-  --f-display:'Playfair Display',Georgia,serif;
-  --f-body:'Inter',system-ui,sans-serif;
-  --f-mono:'IBM Plex Mono',monospace;
+  --white:#fff;--g50:#F8FAFB;--g100:#EEF2F5;--g300:#C8D2DA;--g500:#7A8B96;--g700:#3D4F5C;--g900:#1A252F;
+  --rsm:6px;--rmd:12px;--rlg:20px;
+  --shsm:0 1px 4px rgba(10,22,40,.07);--shmd:0 4px 16px rgba(10,22,40,.10);--shlg:0 12px 40px rgba(10,22,40,.18);
+  --shsea:0 0 0 3px rgba(27,138,158,.25);
+  --nw:72px;
+  --fd:'Playfair Display',Georgia,serif;--fb:'Inter',system-ui,sans-serif;--fm:'IBM Plex Mono',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;scroll-behavior:smooth}
-body{font-family:var(--f-body);background:var(--grey-50);color:var(--grey-900);min-height:100vh;display:flex;overflow-x:hidden}
+body{font-family:var(--fb);background:var(--g50);color:var(--g900);min-height:100vh;display:flex;overflow-x:hidden}
 .hidden{display:none!important}
-.mono{font-family:var(--f-mono)}
-.grey-sm{color:var(--grey-500);font-size:12px}
-.truncate{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* LOADING */
-#loading-screen{position:fixed;inset:0;z-index:9998;background:linear-gradient(135deg,var(--sea-900),var(--navy));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
-.loading-logo{font-size:40px;animation:pulse 1.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.4;transform:scale(.95)}50%{opacity:1;transform:scale(1)}}
-.loading-text{font-size:13px;color:rgba(255,255,255,.5);letter-spacing:.5px}
-#boot-error{margin-top:20px;max-width:480px;padding:20px 24px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.4);border-radius:12px;font-size:13px;color:#FCA5A5;line-height:1.7;text-align:left;display:none}
-#boot-error code{font-family:var(--f-mono);font-size:11px;background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px;display:block;margin-top:8px;word-break:break-all}
-
-/* LOGIN */
-#login-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,var(--sea-900) 0%,var(--sea-700) 55%,var(--navy) 100%);display:flex;align-items:center;justify-content:center}
-.login-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:48px 44px 40px;width:100%;max-width:400px;backdrop-filter:blur(12px);box-shadow:0 32px 80px rgba(0,0,0,.4)}
-.login-logo{width:56px;height:56px;background:linear-gradient(135deg,var(--sea-600),var(--sea-400));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 24px;box-shadow:0 8px 24px rgba(27,138,158,.5)}
-.login-wordmark{text-align:center;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--sand);margin-bottom:8px}
-.login-title{font-family:var(--f-display);font-size:26px;font-weight:700;color:var(--white);text-align:center;margin-bottom:6px}
-.login-sub{font-size:13px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:32px}
-.login-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.5);margin-bottom:8px;display:block}
-.login-input{width:100%;padding:13px 16px;font-family:var(--f-body);font-size:15px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:var(--r-sm);color:var(--white);outline:none;transition:border-color .18s;margin-bottom:20px}
-.login-input::placeholder{color:rgba(255,255,255,.3)}
-.login-input:focus{border-color:var(--sea-400);box-shadow:0 0 0 3px rgba(58,172,191,.2)}
-.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--sea-600),var(--sea-400));color:var(--white);border:none;border-radius:var(--r-sm);font-family:var(--f-body);font-size:14px;font-weight:600;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:8px}
-.login-btn:hover{transform:translateY(-1px)}
-.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
-.login-error{margin-top:14px;padding:10px 14px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);border-radius:var(--r-sm);font-size:13px;color:#FCA5A5;text-align:center}
-.login-footer{margin-top:20px;text-align:center;font-size:11px;color:rgba(255,255,255,.25)}
-
-/* SIDEBAR */
-.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--nav-w);background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:20px 0;z-index:100;box-shadow:4px 0 24px rgba(10,22,40,.18)}
-.sidebar-logo{width:44px;height:44px;background:linear-gradient(135deg,var(--sea-600),var(--sea-400));border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;margin-bottom:32px;font-size:20px;flex-shrink:0}
-.sidebar-nav{display:flex;flex-direction:column;gap:4px;width:100%;padding:0 10px}
-.nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;border-radius:var(--r-sm);cursor:pointer;transition:background .18s;border:none;background:transparent;color:rgba(255,255,255,.45);gap:4px;position:relative;font-family:var(--f-body);width:100%}
-.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.75)}
-.nav-item.active{background:rgba(27,138,158,.25);color:var(--sea-400)}
-.nav-item.active::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:3px;height:24px;background:var(--sea-400);border-radius:0 2px 2px 0}
-.nav-icon{font-size:20px;line-height:1}
-.nav-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;text-align:center}
-.sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 10px;width:100%}
-
-/* MAIN */
-.main{margin-left:var(--nav-w);flex:1;min-height:100vh;display:flex;flex-direction:column}
-.hero{background:linear-gradient(135deg,var(--sea-900) 0%,var(--sea-700) 60%,var(--sea-600) 100%);padding:40px 48px 0;position:relative;overflow:hidden}
-.hero::after{content:'';display:block;height:48px;background:var(--grey-50);clip-path:ellipse(55% 100% at 50% 100%);margin-top:-1px}
-.hero-inner{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;position:relative;z-index:2}
-.hero-wordmark{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--sand);margin-bottom:8px}
-.hero-title{font-family:var(--f-display);font-size:32px;font-weight:700;color:var(--white);line-height:1.18;max-width:420px}
-.hero-title em{color:var(--sea-400);font-style:normal}
-.hero-subtitle{margin-top:10px;font-size:14px;color:rgba(255,255,255,.65);line-height:1.6;max-width:380px}
-.hero-kpis{display:flex;gap:16px;align-items:flex-start;margin-top:4px}
-.kpi-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-md);padding:16px 20px;text-align:center;min-width:110px;backdrop-filter:blur(8px)}
-.kpi-value{font-family:var(--f-mono);font-size:22px;font-weight:500;color:var(--white)}
-.kpi-value.positive{color:#5DD9B0}
-.kpi-value.warning{color:var(--sand)}
-.kpi-label{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
-
-.content{padding:32px 48px 64px;flex:1}
-.panel{display:none}
-.panel.active{display:block}
-.section-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
-.section-eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--sea-600)}
-.section-title{font-family:var(--f-display);font-size:22px;font-weight:600;color:var(--grey-900)}
-.section-divider{flex:1;height:1px;background:var(--grey-100);min-width:20px}
-
-/* FORM */
-.form-card{background:var(--white);border-radius:var(--r-lg);box-shadow:var(--sh-md);border:1px solid var(--grey-100);overflow:hidden;margin-bottom:24px}
-.form-card-header{padding:20px 28px 16px;border-bottom:1px solid var(--grey-100);display:flex;align-items:center;gap:12px}
-.form-card-icon{width:38px;height:38px;background:var(--sea-100);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.form-card-title{font-size:15px;font-weight:600;color:var(--grey-900)}
-.form-card-sub{font-size:12px;color:var(--grey-500);margin-top:2px}
-.form-card-body{padding:24px 28px}
-.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
-.form-group{display:flex;flex-direction:column;gap:6px}
-.form-group.full{grid-column:1/-1}
-.form-group.half{grid-column:span 2}
-.ref-field input{font-family:var(--f-mono);font-size:13px;background:#F0FAFC;border-color:var(--sea-100);color:var(--sea-700);font-weight:500}
-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--grey-500)}
-input,select,textarea{font-family:var(--f-body);font-size:14px;color:var(--grey-900);background:var(--grey-50);border:1.5px solid var(--grey-100);border-radius:var(--r-sm);padding:10px 14px;transition:border-color .18s,box-shadow .18s;outline:none;width:100%}
-input:focus,select:focus,textarea:focus{background:var(--white);border-color:var(--sea-600);box-shadow:var(--sh-sea)}
-textarea{resize:vertical;min-height:80px}
-.form-actions{display:flex;align-items:center;gap:12px;padding:16px 28px 20px;border-top:1px solid var(--grey-100);background:var(--grey-50);flex-wrap:wrap}
-.link-wrap{position:relative}
-.link-wrap input{padding-right:44px}
-.link-wrap .link-go{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;cursor:pointer;opacity:.5;transition:opacity .15s;background:none;border:none;padding:0}
-.link-wrap .link-go:hover{opacity:1}
-
-/* BUTTONS */
-.btn{font-family:var(--f-body);font-size:13px;font-weight:600;padding:10px 22px;border-radius:var(--r-sm);border:none;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap}
-.btn-primary{background:linear-gradient(135deg,var(--sea-700),var(--sea-600));color:var(--white);box-shadow:0 4px 12px rgba(13,95,115,.3)}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,95,115,.4)}
-.btn-secondary{background:var(--grey-100);color:var(--grey-700)}
-.btn-secondary:hover{background:var(--grey-300)}
-.btn-danger{background:#FEE2E2;color:#DC2626}
-.btn-danger:hover{background:#FECACA}
-.btn-ghost{background:var(--grey-50);color:var(--grey-700);border:1px solid var(--grey-100)}
-.btn-ghost:hover{background:var(--grey-100)}
-.btn-link{background:var(--sea-100);color:var(--sea-700)}
-.btn-link:hover{background:var(--sea-400);color:var(--white)}
-.btn-sm{font-size:12px;padding:6px 14px}
-
-/* BADGES */
-.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;white-space:nowrap}
-.badge-green{background:#D1FAE5;color:#065F46}
-.badge-orange{background:#FEF3C7;color:#92400E}
-.badge-red{background:#FEE2E2;color:#991B1B}
-.badge-grey{background:var(--grey-100);color:var(--grey-500)}
-.badge-sea{background:var(--sea-100);color:var(--sea-700)}
-.badge-sand{background:var(--sand-lt);color:#78350F}
-
-/* SYNTH */
-.synth-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
-.synth-card{background:var(--white);border-radius:var(--r-md);border:1px solid var(--grey-100);padding:20px 22px;box-shadow:var(--sh-sm);position:relative;overflow:hidden}
-.synth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.synth-card.sea::before{background:linear-gradient(90deg,var(--sea-700),var(--sea-400))}
-.synth-card.sand::before{background:linear-gradient(90deg,var(--sand),#E8C49A)}
-.synth-card.green::before{background:linear-gradient(90deg,#10B981,#34D399)}
-.synth-card.red::before{background:linear-gradient(90deg,#EF4444,#F87171)}
-.synth-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--grey-500);margin-bottom:8px}
-.synth-value{font-family:var(--f-mono);font-size:28px;font-weight:500;color:var(--grey-900);line-height:1}
-.synth-value.positive{color:#059669}
-.synth-value.negative{color:#DC2626}
-.synth-sub{font-size:12px;color:var(--grey-500);margin-top:6px}
-
-/* TABLE */
-.table-wrapper{background:var(--white);border-radius:var(--r-lg);box-shadow:var(--sh-md);border:1px solid var(--grey-100);overflow:hidden;margin-bottom:24px}
-.table-toolbar{padding:16px 24px;border-bottom:1px solid var(--grey-100);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.table-search{flex:1;min-width:140px;padding:8px 14px 8px 36px;font-size:13px;background:var(--grey-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A8B96' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 12px center}
-.tbl-scroll{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:600px}
-thead th{padding:12px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--grey-500);background:var(--grey-50);border-bottom:1px solid var(--grey-100);white-space:nowrap}
-tbody tr{border-bottom:1px solid var(--grey-50);transition:background .12s}
-tbody tr:last-child{border-bottom:none}
-tbody tr:hover{background:var(--sea-100)}
-tbody td{padding:11px 14px;font-size:13px;color:var(--grey-700);vertical-align:middle}
-.td-amount{font-family:var(--f-mono);font-size:13px;font-weight:500;text-align:right}
-.td-amount.pos{color:#065F46}
-.td-amount.neg{color:#991B1B}
+.mono{font-family:var(--fm)}
+.gsm{color:var(--g500);font-size:12px}
+.trunc{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .act{display:flex;gap:4px;align-items:center}
 
+/* LOADING */
+#LS{position:fixed;inset:0;z-index:9998;background:linear-gradient(135deg,var(--sea-900),var(--navy));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center}
+.llogo{font-size:40px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.95)}50%{opacity:1;transform:scale(1)}}
+.ltxt{font-size:14px;color:rgba(255,255,255,.6);letter-spacing:.5px}
+#lerr{margin-top:16px;max-width:520px;padding:20px 24px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.4);border-radius:12px;font-size:12px;color:#FCA5A5;line-height:1.8;text-align:left;display:none}
+#lerr strong{display:block;font-size:14px;margin-bottom:8px}
+#lerr code{display:block;font-family:var(--fm);background:rgba(0,0,0,.3);padding:6px 10px;border-radius:6px;margin-top:6px;word-break:break-all;font-size:11px}
+
+/* LOGIN */
+#QS{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,var(--sea-900) 0%,var(--sea-700) 55%,var(--navy) 100%);display:flex;align-items:center;justify-content:center;padding:24px}
+.qbox{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:48px 44px 40px;width:100%;max-width:400px;backdrop-filter:blur(12px);box-shadow:0 32px 80px rgba(0,0,0,.4)}
+.qlogo{width:56px;height:56px;background:linear-gradient(135deg,var(--sea-600),var(--sea-400));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 24px;box-shadow:0 8px 24px rgba(27,138,158,.5)}
+.qwm{text-align:center;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--sand);margin-bottom:8px}
+.qtitle{font-family:var(--fd);font-size:26px;font-weight:700;color:#fff;text-align:center;margin-bottom:6px}
+.qsub{font-size:13px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:32px}
+.qlbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.5);margin-bottom:8px;display:block}
+.qinp{width:100%;padding:13px 16px;font-family:var(--fb);font-size:15px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:var(--rsm);color:#fff;outline:none;transition:border-color .18s;margin-bottom:20px}
+.qinp::placeholder{color:rgba(255,255,255,.3)}
+.qinp:focus{border-color:var(--sea-400);box-shadow:0 0 0 3px rgba(58,172,191,.2)}
+.qbtn{width:100%;padding:14px;background:linear-gradient(135deg,var(--sea-600),var(--sea-400));color:#fff;border:none;border-radius:var(--rsm);font-family:var(--fb);font-size:14px;font-weight:600;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:8px}
+.qbtn:hover{transform:translateY(-1px)}
+.qbtn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.qerr{margin-top:14px;padding:10px 14px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);border-radius:var(--rsm);font-size:13px;color:#FCA5A5;text-align:center}
+.qfoot{margin-top:20px;text-align:center;font-size:11px;color:rgba(255,255,255,.25)}
+
+/* SIDEBAR */
+.sb{position:fixed;left:0;top:0;bottom:0;width:var(--nw);background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:20px 0;z-index:100;box-shadow:4px 0 24px rgba(10,22,40,.18)}
+.sblogo{width:44px;height:44px;background:linear-gradient(135deg,var(--sea-600),var(--sea-400));border-radius:var(--rmd);display:flex;align-items:center;justify-content:center;margin-bottom:32px;font-size:20px;flex-shrink:0}
+.sbnav{display:flex;flex-direction:column;gap:4px;width:100%;padding:0 10px}
+.ni{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;border-radius:var(--rsm);cursor:pointer;transition:background .18s;border:none;background:transparent;color:rgba(255,255,255,.45);gap:4px;position:relative;font-family:var(--fb);width:100%}
+.ni:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.75)}
+.ni.active{background:rgba(27,138,158,.25);color:var(--sea-400)}
+.ni.active::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:3px;height:24px;background:var(--sea-400);border-radius:0 2px 2px 0}
+.nico{font-size:20px;line-height:1}
+.nlbl{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;text-align:center}
+.sbbot{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 10px;width:100%}
+
+/* MAIN */
+.main{margin-left:var(--nw);flex:1;min-height:100vh;display:flex;flex-direction:column}
+.hero{background:linear-gradient(135deg,var(--sea-900) 0%,var(--sea-700) 60%,var(--sea-600) 100%);padding:40px 48px 0;position:relative;overflow:hidden}
+.hero::after{content:'';display:block;height:48px;background:var(--g50);clip-path:ellipse(55% 100% at 50% 100%);margin-top:-1px}
+.hinner{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;position:relative;z-index:2;flex-wrap:wrap}
+.hwm{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--sand);margin-bottom:8px}
+.htitle{font-family:var(--fd);font-size:32px;font-weight:700;color:#fff;line-height:1.18;max-width:420px}
+.htitle em{color:var(--sea-400);font-style:normal}
+.hsub{margin-top:10px;font-size:14px;color:rgba(255,255,255,.65);line-height:1.6;max-width:380px}
+.hkpis{display:flex;gap:16px;align-items:flex-start;margin-top:4px;flex-wrap:wrap}
+.kcard{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:var(--rmd);padding:16px 20px;text-align:center;min-width:110px;backdrop-filter:blur(8px)}
+.kval{font-family:var(--fm);font-size:22px;font-weight:500;color:#fff}
+.kval.pos{color:#5DD9B0}.kval.warn{color:var(--sand)}
+.klbl{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+
+.content{padding:32px 48px 64px;flex:1}
+.panel{display:none}.panel.active{display:block}
+.sh{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.sey{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--sea-600)}
+.stitle{font-family:var(--fd);font-size:22px;font-weight:600;color:var(--g900)}
+.sdiv{flex:1;height:1px;background:var(--g100);min-width:20px}
+
+/* FORM */
+.fc{background:#fff;border-radius:var(--rlg);box-shadow:var(--shmd);border:1px solid var(--g100);overflow:hidden;margin-bottom:24px}
+.fch{padding:20px 28px 16px;border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:12px}
+.fci{width:38px;height:38px;background:var(--sea-100);border-radius:var(--rsm);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.fct{font-size:15px;font-weight:600;color:var(--g900)}
+.fcs{font-size:12px;color:var(--g500);margin-top:2px}
+.fcb{padding:24px 28px}
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:16px}
+.fgrp{display:flex;flex-direction:column;gap:6px}
+.fgrp.full{grid-column:1/-1}
+.fgrp.half{grid-column:span 2}
+.reffield input{font-family:var(--fm);font-size:13px;background:#F0FAFC;border-color:var(--sea-100);color:var(--sea-700);font-weight:500;cursor:default}
+label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--g500)}
+input,select,textarea{font-family:var(--fb);font-size:14px;color:var(--g900);background:var(--g50);border:1.5px solid var(--g100);border-radius:var(--rsm);padding:10px 14px;transition:border-color .18s,box-shadow .18s;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{background:#fff;border-color:var(--sea-600);box-shadow:var(--shsea)}
+textarea{resize:vertical;min-height:80px}
+.factions{display:flex;align-items:center;gap:12px;padding:16px 28px 20px;border-top:1px solid var(--g100);background:var(--g50);flex-wrap:wrap}
+.lwrap{position:relative}
+.lwrap input{padding-right:44px}
+.lgo{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:18px;cursor:pointer;background:none;border:none;padding:0;opacity:.5;transition:opacity .15s}
+.lgo:hover{opacity:1}
+
+/* BUTTONS */
+.btn{font-family:var(--fb);font-size:13px;font-weight:600;padding:10px 22px;border-radius:var(--rsm);border:none;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap}
+.bp{background:linear-gradient(135deg,var(--sea-700),var(--sea-600));color:#fff;box-shadow:0 4px 12px rgba(13,95,115,.3)}
+.bp:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,95,115,.4)}
+.bs{background:var(--g100);color:var(--g700)}.bs:hover{background:var(--g300)}
+.bd{background:#FEE2E2;color:#DC2626}.bd:hover{background:#FECACA}
+.bg{background:var(--g50);color:var(--g700);border:1px solid var(--g100)}.bg:hover{background:var(--g100)}
+.bl{background:var(--sea-100);color:var(--sea-700)}.bl:hover{background:var(--sea-400);color:#fff}
+.bsm{font-size:12px;padding:6px 14px}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.bgreen{background:#D1FAE5;color:#065F46}.borg{background:#FEF3C7;color:#92400E}
+.bred{background:#FEE2E2;color:#991B1B}.bgrey{background:var(--g100);color:var(--g500)}
+.bsea{background:var(--sea-100);color:var(--sea-700)}.bsand{background:var(--sand-lt);color:#78350F}
+
+/* SYNTH */
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.sc{background:#fff;border-radius:var(--rmd);border:1px solid var(--g100);padding:20px 22px;box-shadow:var(--shsm);position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.sc.sea::before{background:linear-gradient(90deg,var(--sea-700),var(--sea-400))}
+.sc.sand::before{background:linear-gradient(90deg,var(--sand),#E8C49A)}
+.sc.green::before{background:linear-gradient(90deg,#10B981,#34D399)}
+.sc.red::before{background:linear-gradient(90deg,#EF4444,#F87171)}
+.slbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--g500);margin-bottom:8px}
+.sval{font-family:var(--fm);font-size:28px;font-weight:500;color:var(--g900);line-height:1}
+.sval.pos{color:#059669}.sval.neg{color:#DC2626}
+.ssub{font-size:12px;color:var(--g500);margin-top:6px}
+
+/* TABLE */
+.tw{background:#fff;border-radius:var(--rlg);box-shadow:var(--shmd);border:1px solid var(--g100);overflow:hidden;margin-bottom:24px}
+.ttb{padding:16px 24px;border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tsrch{flex:1;min-width:140px;padding:8px 14px 8px 36px;font-size:13px;background:var(--g50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A8B96' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 12px center;border-radius:var(--rsm);border:1.5px solid var(--g100)}
+.tscrl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:550px}
+thead th{padding:11px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--g500);background:var(--g50);border-bottom:1px solid var(--g100);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--g50);transition:background .12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--sea-100)}
+tbody td{padding:11px 14px;font-size:13px;color:var(--g700);vertical-align:middle}
+.tam{font-family:var(--fm);font-size:13px;font-weight:500;text-align:right}
+.tam.pos{color:#065F46}.tam.neg{color:#991B1B}
+
 /* MONTHLY */
-.month-row{display:flex;align-items:center;padding:11px 24px;border-bottom:1px solid var(--grey-50);transition:background .12s}
-.month-row:hover{background:var(--sea-100)}
-.month-name{width:115px;font-weight:500;font-size:13px}
-.month-bar-wrap{flex:1;height:6px;background:var(--grey-100);border-radius:99px;margin:0 14px;overflow:hidden}
-.month-bar{height:100%;background:linear-gradient(90deg,var(--sea-700),var(--sea-400));border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)}
-.month-amount{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--grey-900);width:110px;text-align:right}
-.month-count{font-size:11px;color:var(--grey-500);width:55px;text-align:right}
+.mr{display:flex;align-items:center;padding:11px 24px;border-bottom:1px solid var(--g50);transition:background .12s}
+.mr:hover{background:var(--sea-100)}
+.mn{width:115px;font-weight:500;font-size:13px}
+.mbw{flex:1;height:6px;background:var(--g100);border-radius:99px;margin:0 14px;overflow:hidden}
+.mb{height:100%;background:linear-gradient(90deg,var(--sea-700),var(--sea-400));border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.ma{font-family:var(--fm);font-size:13px;font-weight:500;color:var(--g900);width:110px;text-align:right}
+.mc{font-size:11px;color:var(--g500);width:55px;text-align:right}
 
 /* TOAST */
-#toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
-.toast{background:var(--grey-900);color:var(--white);padding:12px 20px;border-radius:var(--r-md);font-size:13px;font-weight:500;box-shadow:var(--sh-lg);display:flex;align-items:center;gap:10px;animation:su .3s ease;max-width:340px;pointer-events:auto}
+#TC{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.toast{background:var(--g900);color:#fff;padding:12px 20px;border-radius:var(--rmd);font-size:13px;font-weight:500;box-shadow:var(--shlg);display:flex;align-items:center;gap:10px;animation:su .3s ease;max-width:340px;pointer-events:auto}
 .toast.success{background:#064E3B;border-left:3px solid #10B981}
 .toast.error{background:#7F1D1D;border-left:3px solid #EF4444}
 .toast.info{background:var(--sea-900);border-left:3px solid var(--sea-400)}
 @keyframes su{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-
-.empty-state{text-align:center;padding:52px 24px;display:flex;flex-direction:column;align-items:center;gap:10px}
-.empty-icon{font-size:44px;opacity:.3}
-.empty-title{font-size:15px;font-weight:600;color:var(--grey-700)}
-.empty-sub{font-size:13px;color:var(--grey-500)}
-.spinner{width:20px;height:20px;border:2px solid var(--grey-100);border-top-color:var(--sea-600);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.esp{text-align:center;padding:52px 24px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.ei{font-size:44px;opacity:.3}.et{font-size:15px;font-weight:600;color:var(--g700)}.es{font-size:13px;color:var(--g500)}
+.spn{width:20px;height:20px;border:2px solid var(--g100);border-top-color:var(--sea-600);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
-.notice{background:var(--sand-lt);border:1.5px solid var(--sand);border-radius:var(--r-md);padding:12px 18px;margin-bottom:20px;font-size:13px;color:#78350F}
+.notice{background:var(--sand-lt);border:1.5px solid var(--sand);border-radius:var(--rmd);padding:12px 18px;margin-bottom:20px;font-size:13px;color:#78350F}
 
-@media(max-width:900px){.hero{padding:28px 24px 0}.content{padding:20px}.hero-inner{flex-direction:column}.hero-kpis{flex-wrap:wrap}.synth-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){.main{margin-left:0}.sidebar{display:none}.synth-grid{grid-template-columns:1fr}.form-group.half{grid-column:1/-1}}
+@media(max-width:900px){.hero{padding:28px 24px 0}.content{padding:20px}.hinner{flex-direction:column}.sgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.main{margin-left:0}.sb{display:none}.sgrid{grid-template-columns:1fr}.fgrp.half{grid-column:1/-1}}
 </style>
 </head>
 <body>
 
-<!-- LOADING -->
-<div id="loading-screen">
-  <div class="loading-logo">💼</div>
-  <div class="loading-text" id="loading-text">Initialisation Firebase…</div>
-  <div id="boot-error"></div>
+<div id="LS">
+  <div class="llogo">💼</div>
+  <div class="ltxt" id="ltxt">Connexion à Firebase…</div>
+  <div id="lerr"></div>
 </div>
 
-<!-- LOGIN -->
-<div id="login-screen" class="hidden">
-  <div class="login-box">
-    <div class="login-logo">💼</div>
-    <div class="login-wordmark">Consult-Gherio</div>
-    <div class="login-title">Gestion Financière</div>
-    <div class="login-sub">Espace sécurisé — accès restreint</div>
-    <label class="login-label" for="pwd-input">Mot de passe</label>
-    <input class="login-input" type="password" id="pwd-input" placeholder="••••••••••" autocomplete="current-password">
-    <button class="login-btn" id="login-btn" onclick="doLogin()">
-      <span id="login-btn-text">Accéder</span>
-    </button>
-    <div class="login-error hidden" id="login-error">Mot de passe incorrect.</div>
-    <div class="login-footer">consult-gherio.fr · Accès sécurisé Firebase</div>
+<div id="QS" class="hidden">
+  <div class="qbox">
+    <div class="qlogo">💼</div>
+    <div class="qwm">Consult-Gherio</div>
+    <div class="qtitle">Gestion Financière</div>
+    <div class="qsub">Espace sécurisé — accès restreint</div>
+    <label class="qlbl" for="pwd">Mot de passe</label>
+    <input class="qinp" type="password" id="pwd" placeholder="••••••••••" autocomplete="current-password">
+    <button class="qbtn" id="qbtn"><span id="qbtxt">Accéder</span></button>
+    <div class="qerr hidden" id="qerr">Mot de passe incorrect.</div>
+    <div class="qfoot">consult-gherio.fr · Sécurisé par Firebase</div>
   </div>
 </div>
 
-<!-- APP -->
-<div id="app" style="display:none;width:100%;flex-direction:row">
-  <nav class="sidebar">
-    <div class="sidebar-logo">💼</div>
-    <div class="sidebar-nav">
-      <button class="nav-item active" onclick="showPanel('dashboard')"><span class="nav-icon">📊</span><span class="nav-label">Bord</span></button>
-      <button class="nav-item" onclick="showPanel('recettes')"><span class="nav-icon">💰</span><span class="nav-label">Recettes</span></button>
-      <button class="nav-item" onclick="showPanel('depenses')"><span class="nav-icon">💳</span><span class="nav-label">Dépenses</span></button>
-      <button class="nav-item" onclick="showPanel('justifs')"><span class="nav-icon">📎</span><span class="nav-label">Justifs.</span></button>
-      <button class="nav-item" onclick="showPanel('synthese')"><span class="nav-icon">📅</span><span class="nav-label">Synthèse</span></button>
+<div id="APP" style="display:none;width:100%;flex-direction:row">
+  <nav class="sb">
+    <div class="sblogo">💼</div>
+    <div class="sbnav">
+      <button class="ni active" onclick="nav('dashboard')"><span class="nico">📊</span><span class="nlbl">Bord</span></button>
+      <button class="ni" onclick="nav('recettes')"><span class="nico">💰</span><span class="nlbl">Recettes</span></button>
+      <button class="ni" onclick="nav('depenses')"><span class="nico">💳</span><span class="nlbl">Dépenses</span></button>
+      <button class="ni" onclick="nav('justifs')"><span class="nico">📎</span><span class="nlbl">Justifs.</span></button>
+      <button class="ni" onclick="nav('synthese')"><span class="nico">📅</span><span class="nlbl">Synthèse</span></button>
     </div>
-    <div class="sidebar-bottom">
-      <button class="nav-item" onclick="exportData()"><span class="nav-icon">⬇️</span><span class="nav-label">Export</span></button>
-      <button class="nav-item" onclick="doLogout()"><span class="nav-icon">🔒</span><span class="nav-label">Sortir</span></button>
+    <div class="sbbot">
+      <button class="ni" onclick="exportData()"><span class="nico">⬇️</span><span class="nlbl">Export</span></button>
+      <button class="ni" onclick="doLogout()"><span class="nico">🔒</span><span class="nlbl">Sortir</span></button>
     </div>
   </nav>
 
   <div class="main">
     <div class="hero">
-      <div class="hero-inner">
+      <div class="hinner">
         <div>
-          <div class="hero-wordmark">Consult-Gherio · Gestion Financière</div>
-          <h1 class="hero-title">Pilotez votre <em>micro-entreprise</em> en temps réel</h1>
-          <p class="hero-subtitle">Recettes, dépenses, justificatifs — synchronisés sur Firebase.</p>
+          <div class="hwm">Consult-Gherio · Gestion Financière</div>
+          <h1 class="htitle">Pilotez votre <em>micro-entreprise</em> en temps réel</h1>
+          <p class="hsub">Recettes, dépenses, justificatifs — synchronisés sur Firebase.</p>
         </div>
-        <div class="hero-kpis">
-          <div class="kpi-card"><div class="kpi-value positive" id="kpi-ca">—</div><div class="kpi-label">CA ce mois</div></div>
-          <div class="kpi-card"><div class="kpi-value" id="kpi-dep">—</div><div class="kpi-label">Dépenses</div></div>
-          <div class="kpi-card"><div class="kpi-value warning" id="kpi-justif">—</div><div class="kpi-label">Justif. manquants</div></div>
+        <div class="hkpis">
+          <div class="kcard"><div class="kval pos" id="kca">—</div><div class="klbl">CA ce mois</div></div>
+          <div class="kcard"><div class="kval" id="kdep">—</div><div class="klbl">Dépenses</div></div>
+          <div class="kcard"><div class="kval warn" id="kjust">—</div><div class="klbl">Justif. manquants</div></div>
         </div>
       </div>
     </div>
 
     <div class="content">
+
       <!-- DASHBOARD -->
       <div id="panel-dashboard" class="panel active">
-        <div class="section-header">
-          <div><div class="section-eyebrow">Vue d'ensemble</div><div class="section-title">Tableau de bord</div></div>
-          <div class="section-divider"></div>
+        <div class="sh"><div><div class="sey">Vue d'ensemble</div><div class="stitle">Tableau de bord</div></div><div class="sdiv"></div></div>
+        <div class="sgrid">
+          <div class="sc sea"><div class="slbl">CA annuel TTC</div><div class="sval" id="dca">…</div><div class="ssub">Total facturé</div></div>
+          <div class="sc green"><div class="slbl">Encaissé HT</div><div class="sval pos" id="denc">…</div><div class="ssub">Paiements reçus</div></div>
+          <div class="sc sand"><div class="slbl">Dépenses suivies</div><div class="sval" id="ddep">…</div><div class="ssub">Non déductibles</div></div>
+          <div class="sc sea"><div class="slbl">Trésorerie nette</div><div class="sval" id="dtr">…</div><div class="ssub">Encaissé − Dépenses</div></div>
+          <div class="sc red"><div class="slbl">Justif. manquants</div><div class="sval neg" id="dmiss">…</div><div class="ssub">À régulariser</div></div>
+          <div class="sc sand"><div class="slbl">Factures émises</div><div class="sval" id="dnb">…</div><div class="ssub">Total enregistrées</div></div>
         </div>
-        <div class="synth-grid">
-          <div class="synth-card sea"><div class="synth-label">CA annuel TTC</div><div class="synth-value" id="d-ca-annual">…</div><div class="synth-sub">Total facturé</div></div>
-          <div class="synth-card green"><div class="synth-label">Encaissé HT</div><div class="synth-value positive" id="d-encaisse">…</div><div class="synth-sub">Paiements reçus</div></div>
-          <div class="synth-card sand"><div class="synth-label">Dépenses suivies</div><div class="synth-value" id="d-depenses">…</div><div class="synth-sub">Non déductibles — suivi interne</div></div>
-          <div class="synth-card sea"><div class="synth-label">Trésorerie nette</div><div class="synth-value" id="d-treso">…</div><div class="synth-sub">Encaissé − Dépenses</div></div>
-          <div class="synth-card red"><div class="synth-label">Justif. manquants</div><div class="synth-value negative" id="d-missing">…</div><div class="synth-sub">À régulariser</div></div>
-          <div class="synth-card sand"><div class="synth-label">Factures émises</div><div class="synth-value" id="d-nb-fac">…</div><div class="synth-sub">Total enregistrées</div></div>
-        </div>
-        <div class="table-wrapper">
-          <div class="table-toolbar"><span style="font-weight:600;font-size:14px;color:var(--grey-700)">Activité récente</span><span class="badge badge-sea" id="recent-count">—</span></div>
-          <div class="tbl-scroll"><table><thead><tr><th>Réf.</th><th>Date</th><th>Type</th><th>Désignation</th><th>Tiers</th><th style="text-align:right">Montant</th><th>Statut</th></tr></thead>
-          <tbody id="recent-tb"><tr><td colspan="7"><div class="empty-state"><span class="spinner"></span></div></td></tr></tbody></table></div>
+        <div class="tw">
+          <div class="ttb"><span style="font-weight:600;font-size:14px;color:var(--g700)">Activité récente</span><span class="badge bsea" id="reccnt">—</span></div>
+          <div class="tscrl"><table><thead><tr><th>Réf.</th><th>Date</th><th>Type</th><th>Désignation</th><th>Tiers</th><th style="text-align:right">Montant</th><th>Statut</th></tr></thead>
+          <tbody id="rtb"><tr><td colspan="7"><div class="esp"><span class="spn"></span></div></td></tr></tbody></table></div>
         </div>
       </div>
 
       <!-- RECETTES -->
       <div id="panel-recettes" class="panel">
-        <div class="section-header">
-          <div><div class="section-eyebrow">Chiffre d'affaires</div><div class="section-title">Recettes</div></div>
-          <div class="section-divider"></div>
-          <button class="btn btn-primary btn-sm" onclick="openForm('recette')">+ Nouvelle recette</button>
-        </div>
-        <div class="form-card" id="form-recette" style="display:none">
-          <div class="form-card-header"><div class="form-card-icon">💰</div><div><div class="form-card-title">Enregistrer une recette</div><div class="form-card-sub">Réf. générée automatiquement · Champs * obligatoires</div></div></div>
-          <div class="form-card-body"><div class="form-grid">
-            <div class="form-group ref-field"><label>Réf. (auto)</label><input type="text" id="r-ref" readonly tabindex="-1"></div>
-            <div class="form-group"><label>Date *</label><input type="date" id="r-date"></div>
-            <div class="form-group"><label>Client *</label><input type="text" id="r-client" placeholder="SAS Dupont"></div>
-            <div class="form-group half"><label>Prestation / Objet *</label><input type="text" id="r-prestation" placeholder="Consultation stratégie IA"></div>
-            <div class="form-group"><label>N° Facture</label><input type="text" id="r-facture" placeholder="FAC-2025-001"></div>
-            <div class="form-group"><label>HT (€) *</label><input type="number" id="r-ht" step="0.01" min="0" placeholder="1500.00"></div>
-            <div class="form-group"><label>TVA (€)</label><input type="number" id="r-tva" step="0.01" min="0" placeholder="0.00"></div>
-            <div class="form-group"><label>TTC (€)</label><input type="number" id="r-ttc" step="0.01" min="0" placeholder="Auto"></div>
-            <div class="form-group"><label>Mode paiement</label><select id="r-mode"><option value="">—</option><option>Virement</option><option>Chèque</option><option>Carte bancaire</option><option>Prélèvement</option><option>Espèces</option><option>PayPal</option><option>Stripe</option></select></div>
-            <div class="form-group"><label>Encaissé ?</label><select id="r-enc"><option value="">—</option><option>Oui</option><option>Non</option><option>En attente</option></select></div>
-            <div class="form-group full"><label>Commentaire</label><textarea id="r-comment" placeholder="Notes internes…"></textarea></div>
+        <div class="sh"><div><div class="sey">Chiffre d'affaires</div><div class="stitle">Recettes</div></div><div class="sdiv"></div>
+          <button class="btn bp bsm" onclick="openF('r')">+ Nouvelle recette</button></div>
+        <div class="fc" id="FR" style="display:none">
+          <div class="fch"><div class="fci">💰</div><div><div class="fct">Enregistrer une recette</div><div class="fcs">Réf. auto · * obligatoires</div></div></div>
+          <div class="fcb"><div class="fg">
+            <div class="fgrp reffield"><label>Réf. (auto)</label><input id="rref" readonly tabindex="-1"></div>
+            <div class="fgrp"><label>Date *</label><input type="date" id="rdate"></div>
+            <div class="fgrp"><label>Client *</label><input id="rcli" placeholder="SAS Dupont"></div>
+            <div class="fgrp half"><label>Prestation *</label><input id="rpre" placeholder="Consultation stratégie IA"></div>
+            <div class="fgrp"><label>N° Facture</label><input id="rfac" placeholder="FAC-2025-001"></div>
+            <div class="fgrp"><label>HT (€) *</label><input type="number" id="rht" step="0.01" min="0" placeholder="1500.00"></div>
+            <div class="fgrp"><label>TVA (€)</label><input type="number" id="rtva" step="0.01" min="0" placeholder="0.00"></div>
+            <div class="fgrp"><label>TTC (€)</label><input type="number" id="rttc" step="0.01" min="0" placeholder="Auto"></div>
+            <div class="fgrp"><label>Mode paiement</label><select id="rmod"><option value="">—</option><option>Virement</option><option>Chèque</option><option>Carte bancaire</option><option>Prélèvement</option><option>Espèces</option><option>PayPal</option><option>Stripe</option></select></div>
+            <div class="fgrp"><label>Encaissé ?</label><select id="renc"><option value="">—</option><option>Oui</option><option>Non</option><option>En attente</option></select></div>
+            <div class="fgrp full"><label>Commentaire</label><textarea id="rcom" placeholder="Notes…"></textarea></div>
           </div></div>
-          <div class="form-actions">
-            <button class="btn btn-primary" onclick="saveRecette()">💾 Sauvegarder</button>
-            <button class="btn btn-secondary" onclick="closeForm('recette')">Annuler</button>
-            <span id="r-saving" class="hidden" style="font-size:13px;color:var(--grey-500)"><span class="spinner"></span> Enregistrement…</span>
+          <div class="factions">
+            <button class="btn bp" onclick="saveR()">💾 Sauvegarder</button>
+            <button class="btn bs" onclick="closeF('r')">Annuler</button>
+            <span id="rsav" class="hidden gsm"><span class="spn"></span> Enregistrement…</span>
           </div>
         </div>
-        <div class="table-wrapper">
-          <div class="table-toolbar">
-            <input class="table-search" type="search" placeholder="Rechercher…" oninput="filterTb('r-tb',this.value)">
-            <span class="badge badge-sea" id="r-count">—</span>
-          </div>
-          <div class="tbl-scroll"><table><thead><tr><th>Réf.</th><th>Date</th><th>Client</th><th>Prestation</th><th>Facture</th><th style="text-align:right">HT</th><th style="text-align:right">TTC</th><th>Paiement</th><th>Encaissé</th><th>Actions</th></tr></thead>
-          <tbody id="r-tb"><tr><td colspan="10"><div class="empty-state"><span class="spinner"></span></div></td></tr></tbody></table></div>
+        <div class="tw">
+          <div class="ttb"><input class="tsrch" type="search" placeholder="Rechercher…" oninput="filt('Rtb',this.value)"><span class="badge bsea" id="rcnt">—</span></div>
+          <div class="tscrl"><table><thead><tr><th>Réf.</th><th>Date</th><th>Client</th><th>Prestation</th><th>Facture</th><th style="text-align:right">HT</th><th style="text-align:right">TTC</th><th>Paiement</th><th>Encaissé</th><th></th></tr></thead>
+          <tbody id="Rtb"><tr><td colspan="10"><div class="esp"><span class="spn"></span></div></td></tr></tbody></table></div>
         </div>
       </div>
 
       <!-- DÉPENSES -->
       <div id="panel-depenses" class="panel">
-        <div class="section-header">
-          <div><div class="section-eyebrow">Suivi interne</div><div class="section-title">Dépenses</div></div>
-          <div class="section-divider"></div>
-          <button class="btn btn-primary btn-sm" onclick="openForm('depense')">+ Nouvelle dépense</button>
-        </div>
-        <div class="notice">⚠️ <strong>Rappel micro-entreprise :</strong> les dépenses ne sont pas déductibles du CA fiscal. Ce suivi sert à la gestion de trésorerie interne.</div>
-        <div class="form-card" id="form-depense" style="display:none">
-          <div class="form-card-header"><div class="form-card-icon">💳</div><div><div class="form-card-title">Enregistrer une dépense</div><div class="form-card-sub">Réf. générée automatiquement · Champs * obligatoires</div></div></div>
-          <div class="form-card-body"><div class="form-grid">
-            <div class="form-group ref-field"><label>Réf. (auto)</label><input type="text" id="d-ref" readonly tabindex="-1"></div>
-            <div class="form-group"><label>Date *</label><input type="date" id="d-date"></div>
-            <div class="form-group"><label>Catégorie *</label><select id="d-cat"><option value="">—</option><option>Logiciels & abonnements</option><option>Déplacements</option><option>Équipement informatique</option><option>Formation & développement</option><option>Marketing & communication</option><option>Services professionnels</option><option>Frais bancaires</option><option>Bureau & fournitures</option><option>Restauration professionnelle</option><option>Autres</option></select></div>
-            <div class="form-group"><label>Sous-catégorie</label><input type="text" id="d-subcat" placeholder="SaaS / Cloud"></div>
-            <div class="form-group"><label>Fournisseur *</label><input type="text" id="d-fourn" placeholder="Adobe"></div>
-            <div class="form-group half"><label>Description *</label><input type="text" id="d-desc" placeholder="Abonnement Creative Cloud"></div>
-            <div class="form-group"><label>Montant TTC (€) *</label><input type="number" id="d-ttc" step="0.01" min="0" placeholder="29.99"></div>
-            <div class="form-group"><label>TVA estimée (€)</label><input type="number" id="d-tva" step="0.01" min="0" placeholder="0.00"></div>
-            <div class="form-group"><label>Mode paiement</label><select id="d-mode"><option value="">—</option><option>Virement</option><option>Chèque</option><option>Carte bancaire</option><option>Prélèvement</option><option>Espèces</option></select></div>
-            <div class="form-group"><label>N° Justificatif lié</label><input type="text" id="d-just" placeholder="JUST-2025-…"></div>
-            <div class="form-group"><label>Projet / Client</label><input type="text" id="d-projet" placeholder="Général"></div>
-            <div class="form-group"><label>Statut justificatif</label><select id="d-statut"><option value="">—</option><option>✅ Reçu</option><option>⚠️ Manquant</option><option>🔄 En cours</option><option>📤 Demandé</option></select></div>
-            <div class="form-group"><label>⚠️ À vérifier ?</label><select id="d-verif"><option value="Non">Non</option><option value="Oui">Oui — contrôle requis</option></select></div>
-            <div class="form-group full"><label>Commentaire</label><textarea id="d-comment" placeholder="Notes…"></textarea></div>
+        <div class="sh"><div><div class="sey">Suivi interne</div><div class="stitle">Dépenses</div></div><div class="sdiv"></div>
+          <button class="btn bp bsm" onclick="openF('d')">+ Nouvelle dépense</button></div>
+        <div class="notice">⚠️ <strong>Rappel micro-entreprise :</strong> les dépenses ne sont pas déductibles du CA fiscal. Suivi interne uniquement.</div>
+        <div class="fc" id="FD" style="display:none">
+          <div class="fch"><div class="fci">💳</div><div><div class="fct">Enregistrer une dépense</div><div class="fcs">Réf. auto · * obligatoires</div></div></div>
+          <div class="fcb"><div class="fg">
+            <div class="fgrp reffield"><label>Réf. (auto)</label><input id="dref" readonly tabindex="-1"></div>
+            <div class="fgrp"><label>Date *</label><input type="date" id="ddate"></div>
+            <div class="fgrp"><label>Catégorie *</label><select id="dcat"><option value="">—</option><option>Logiciels & abonnements</option><option>Déplacements</option><option>Équipement informatique</option><option>Formation & développement</option><option>Marketing & communication</option><option>Services professionnels</option><option>Frais bancaires</option><option>Bureau & fournitures</option><option>Restauration professionnelle</option><option>Autres</option></select></div>
+            <div class="fgrp"><label>Sous-catégorie</label><input id="dsub" placeholder="SaaS / Cloud"></div>
+            <div class="fgrp"><label>Fournisseur *</label><input id="dfou" placeholder="Adobe"></div>
+            <div class="fgrp half"><label>Description *</label><input id="ddesc" placeholder="Abonnement Creative Cloud"></div>
+            <div class="fgrp"><label>Montant TTC (€) *</label><input type="number" id="dttc" step="0.01" min="0" placeholder="29.99"></div>
+            <div class="fgrp"><label>TVA estimée (€)</label><input type="number" id="dtva" step="0.01" min="0" placeholder="0.00"></div>
+            <div class="fgrp"><label>Mode paiement</label><select id="dmod"><option value="">—</option><option>Virement</option><option>Chèque</option><option>Carte bancaire</option><option>Prélèvement</option><option>Espèces</option></select></div>
+            <div class="fgrp"><label>N° Justificatif lié</label><input id="djus" placeholder="JUST-2025-…"></div>
+            <div class="fgrp"><label>Projet / Client</label><input id="dproj" placeholder="Général"></div>
+            <div class="fgrp"><label>Statut justificatif</label><select id="dstat"><option value="">—</option><option>✅ Reçu</option><option>⚠️ Manquant</option><option>🔄 En cours</option><option>📤 Demandé</option></select></div>
+            <div class="fgrp"><label>⚠️ À vérifier ?</label><select id="dver"><option value="Non">Non</option><option value="Oui">Oui</option></select></div>
+            <div class="fgrp full"><label>Commentaire</label><textarea id="dcom" placeholder="Notes…"></textarea></div>
           </div></div>
-          <div class="form-actions">
-            <button class="btn btn-primary" onclick="saveDepense()">💾 Sauvegarder</button>
-            <button class="btn btn-secondary" onclick="closeForm('depense')">Annuler</button>
-            <span id="d-saving" class="hidden" style="font-size:13px;color:var(--grey-500)"><span class="spinner"></span> Enregistrement…</span>
+          <div class="factions">
+            <button class="btn bp" onclick="saveD()">💾 Sauvegarder</button>
+            <button class="btn bs" onclick="closeF('d')">Annuler</button>
+            <span id="dsav" class="hidden gsm"><span class="spn"></span> Enregistrement…</span>
           </div>
         </div>
-        <div class="table-wrapper">
-          <div class="table-toolbar">
-            <input class="table-search" type="search" placeholder="Rechercher…" oninput="filterTb('d-tb',this.value)">
-            <span class="badge badge-orange" id="d-count">—</span>
-          </div>
-          <div class="tbl-scroll"><table><thead><tr><th>Réf.</th><th>Date</th><th>Catégorie</th><th>Fournisseur</th><th>Description</th><th style="text-align:right">TTC</th><th>Mode</th><th>Justif.</th><th>Statut</th><th>Vérif.</th><th>Actions</th></tr></thead>
-          <tbody id="d-tb"><tr><td colspan="11"><div class="empty-state"><span class="spinner"></span></div></td></tr></tbody></table></div>
+        <div class="tw">
+          <div class="ttb"><input class="tsrch" type="search" placeholder="Rechercher…" oninput="filt('Dtb',this.value)"><span class="badge borg" id="dcnt">—</span></div>
+          <div class="tscrl"><table><thead><tr><th>Réf.</th><th>Date</th><th>Catégorie</th><th>Fournisseur</th><th>Description</th><th style="text-align:right">TTC</th><th>Mode</th><th>Justif.</th><th>Statut</th><th>Vérif.</th><th></th></tr></thead>
+          <tbody id="Dtb"><tr><td colspan="11"><div class="esp"><span class="spn"></span></div></td></tr></tbody></table></div>
         </div>
       </div>
 
       <!-- JUSTIFICATIFS -->
       <div id="panel-justifs" class="panel">
-        <div class="section-header">
-          <div><div class="section-eyebrow">Preuves documentaires</div><div class="section-title">Justificatifs</div></div>
-          <div class="section-divider"></div>
-          <button class="btn btn-primary btn-sm" onclick="openForm('justif')">+ Nouveau justificatif</button>
-        </div>
-        <div class="form-card" id="form-justif" style="display:none">
-          <div class="form-card-header"><div class="form-card-icon">📎</div><div><div class="form-card-title">Enregistrer un justificatif</div><div class="form-card-sub">Ajoutez un lien OneDrive pour accéder au document directement</div></div></div>
-          <div class="form-card-body"><div class="form-grid">
-            <div class="form-group ref-field"><label>Réf. (auto)</label><input type="text" id="j-ref" readonly tabindex="-1"></div>
-            <div class="form-group"><label>Date *</label><input type="date" id="j-date"></div>
-            <div class="form-group"><label>Type *</label><select id="j-type"><option value="">—</option><option>Facture fournisseur</option><option>Ticket de caisse</option><option>Billet / ticket transport</option><option>Note de frais</option><option>Relevé bancaire</option><option>Contrat</option><option>Reçu</option><option>Autre</option></select></div>
-            <div class="form-group"><label>Fournisseur / Émetteur *</label><input type="text" id="j-fourn" placeholder="Adobe Inc."></div>
-            <div class="form-group"><label>Montant (€)</label><input type="number" id="j-montant" step="0.01" min="0" placeholder="29.99"></div>
-            <div class="form-group"><label>Lié à réf. dépense</label><input type="text" id="j-dep" placeholder="DEP-2025-…"></div>
-            <div class="form-group"><label>Format</label><select id="j-format"><option value="">—</option><option>PDF</option><option>Photo / JPG</option><option>PNG</option><option>Papier scanné</option><option>À obtenir</option></select></div>
-            <div class="form-group half"><label>Nom / Chemin fichier</label><input type="text" id="j-fichier" placeholder="2025/08_Adobe.pdf"></div>
-            <div class="form-group full">
-              <label>🔗 Lien OneDrive (actif après enregistrement)</label>
-              <div class="link-wrap">
-                <input type="url" id="j-link" placeholder="https://onedrive.live.com/…">
-                <button class="link-go" type="button" onclick="previewLink()" title="Ouvrir le lien">🔗</button>
-              </div>
+        <div class="sh"><div><div class="sey">Preuves documentaires</div><div class="stitle">Justificatifs</div></div><div class="sdiv"></div>
+          <button class="btn bp bsm" onclick="openF('j')">+ Nouveau justificatif</button></div>
+        <div class="fc" id="FJ" style="display:none">
+          <div class="fch"><div class="fci">📎</div><div><div class="fct">Enregistrer un justificatif</div><div class="fcs">Ajoutez un lien OneDrive — il deviendra actif dans le tableau</div></div></div>
+          <div class="fcb"><div class="fg">
+            <div class="fgrp reffield"><label>Réf. (auto)</label><input id="jref" readonly tabindex="-1"></div>
+            <div class="fgrp"><label>Date *</label><input type="date" id="jdate"></div>
+            <div class="fgrp"><label>Type *</label><select id="jtype"><option value="">—</option><option>Facture fournisseur</option><option>Ticket de caisse</option><option>Billet / ticket transport</option><option>Note de frais</option><option>Relevé bancaire</option><option>Contrat</option><option>Reçu</option><option>Autre</option></select></div>
+            <div class="fgrp"><label>Fournisseur *</label><input id="jfou" placeholder="Adobe Inc."></div>
+            <div class="fgrp"><label>Montant (€)</label><input type="number" id="jmnt" step="0.01" min="0" placeholder="29.99"></div>
+            <div class="fgrp"><label>Lié à réf. dépense</label><input id="jdep" placeholder="DEP-2025-…"></div>
+            <div class="fgrp"><label>Format</label><select id="jfmt"><option value="">—</option><option>PDF</option><option>Photo / JPG</option><option>PNG</option><option>Papier scanné</option><option>À obtenir</option></select></div>
+            <div class="fgrp half"><label>Nom / Chemin fichier</label><input id="jfic" placeholder="2025/08_Adobe.pdf"></div>
+            <div class="fgrp full">
+              <label>🔗 Lien OneDrive</label>
+              <div class="lwrap"><input type="url" id="jlnk" placeholder="https://onedrive.live.com/…"><button class="lgo" type="button" onclick="prvLnk()" title="Tester le lien">🔗</button></div>
             </div>
-            <div class="form-group"><label>Statut</label><select id="j-statut"><option value="">—</option><option>✅ Classé</option><option>⚠️ En attente</option><option>❌ Introuvable</option></select></div>
+            <div class="fgrp"><label>Statut</label><select id="jstat"><option value="">—</option><option>✅ Classé</option><option>⚠️ En attente</option><option>❌ Introuvable</option></select></div>
           </div></div>
-          <div class="form-actions">
-            <button class="btn btn-primary" onclick="saveJustif()">💾 Sauvegarder</button>
-            <button class="btn btn-secondary" onclick="closeForm('justif')">Annuler</button>
-            <span id="j-saving" class="hidden" style="font-size:13px;color:var(--grey-500)"><span class="spinner"></span> Enregistrement…</span>
+          <div class="factions">
+            <button class="btn bp" onclick="saveJ()">💾 Sauvegarder</button>
+            <button class="btn bs" onclick="closeF('j')">Annuler</button>
+            <span id="jsav" class="hidden gsm"><span class="spn"></span> Enregistrement…</span>
           </div>
         </div>
-        <div class="table-wrapper">
-          <div class="table-toolbar">
-            <input class="table-search" type="search" placeholder="Rechercher…" oninput="filterTb('j-tb',this.value)">
-            <span class="badge badge-sea" id="j-count">—</span>
-          </div>
-          <div class="tbl-scroll"><table><thead><tr><th>Réf.</th><th>Date</th><th>Type</th><th>Fournisseur</th><th style="text-align:right">Montant</th><th>Lié à</th><th>Format</th><th>Fichier</th><th>OneDrive</th><th>Statut</th><th>Actions</th></tr></thead>
-          <tbody id="j-tb"><tr><td colspan="11"><div class="empty-state"><span class="spinner"></span></div></td></tr></tbody></table></div>
+        <div class="tw">
+          <div class="ttb"><input class="tsrch" type="search" placeholder="Rechercher…" oninput="filt('Jtb',this.value)"><span class="badge bsea" id="jcnt">—</span></div>
+          <div class="tscrl"><table><thead><tr><th>Réf.</th><th>Date</th><th>Type</th><th>Fournisseur</th><th style="text-align:right">Montant</th><th>Lié à</th><th>Format</th><th>Fichier</th><th>OneDrive</th><th>Statut</th><th></th></tr></thead>
+          <tbody id="Jtb"><tr><td colspan="11"><div class="esp"><span class="spn"></span></div></td></tr></tbody></table></div>
         </div>
       </div>
 
       <!-- SYNTHÈSE -->
       <div id="panel-synthese" class="panel">
-        <div class="section-header">
-          <div><div class="section-eyebrow">Récapitulatif automatique</div><div class="section-title">Synthèse mensuelle</div></div>
-          <div class="section-divider"></div>
+        <div class="sh"><div><div class="sey">Récapitulatif automatique</div><div class="stitle">Synthèse mensuelle</div></div><div class="sdiv"></div></div>
+        <div class="sgrid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="sc sea"><div class="slbl">CA annuel TTC</div><div class="sval" id="sca">…</div></div>
+          <div class="sc green"><div class="slbl">Encaissé HT</div><div class="sval pos" id="senc">…</div></div>
+          <div class="sc sand"><div class="slbl">Dépenses totales</div><div class="sval" id="sdep">…</div></div>
+          <div class="sc green"><div class="slbl">Trésorerie nette</div><div class="sval" id="str">…</div></div>
         </div>
-        <div class="synth-grid" style="grid-template-columns:repeat(4,1fr)">
-          <div class="synth-card sea"><div class="synth-label">CA annuel TTC</div><div class="synth-value" id="s-ca">…</div></div>
-          <div class="synth-card green"><div class="synth-label">Encaissé HT</div><div class="synth-value positive" id="s-enc">…</div></div>
-          <div class="synth-card sand"><div class="synth-label">Dépenses totales</div><div class="synth-value" id="s-dep">…</div></div>
-          <div class="synth-card green"><div class="synth-label">Trésorerie nette</div><div class="synth-value" id="s-treso">…</div></div>
+        <div class="tw" style="margin-top:4px">
+          <div class="ttb"><span style="font-weight:600;font-size:14px;color:var(--g700)">Évolution mensuelle — CA TTC</span></div>
+          <div id="mbars" style="padding:8px 0 12px"></div>
         </div>
-        <div class="table-wrapper" style="margin-top:20px">
-          <div class="table-toolbar"><span style="font-weight:600;font-size:14px;color:var(--grey-700)">Évolution mensuelle — CA TTC</span></div>
-          <div id="monthly-bars" style="padding:8px 0 12px"></div>
-        </div>
-        <div class="table-wrapper">
-          <div class="table-toolbar"><span style="font-weight:600;font-size:14px;color:var(--grey-700)">Dépenses par catégorie</span></div>
+        <div class="tw">
+          <div class="ttb"><span style="font-weight:600;font-size:14px;color:var(--g700)">Dépenses par catégorie</span></div>
           <table><thead><tr><th>Catégorie</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead>
-          <tbody id="cat-tb"></tbody></table>
+          <tbody id="cattb"></tbody></table>
         </div>
       </div>
+
     </div>
   </div>
 </div>
+<div id="TC"></div>
 
-<div id="toast-container"></div>
-
-<!-- ═══════════════════════════════════════════════════════════════════════
-     ALL LOGIC — single self-contained module, no external app.js needed
-     ═══════════════════════════════════════════════════════════════════════ -->
 <script type="module">
-// ─── IMPORTANT: replace with your actual Firebase project ID ─────────────
-const PROJECT_ID = "suivi-financier-695df";
-// ─────────────────────────────────────────────────────────────────────────
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCYRK4wqehW0TNQij2Z-THgtUaf8bDHyNE",
-  authDomain: "suivi-financier-695df.firebaseapp.com",
-  projectId: "suivi-financier-695df",
-  storageBucket: "suivi-financier-695df.firebasestorage.app",
-  messagingSenderId: "724463087611",
-  appId: "1:724463087611:web:cc7eda70cec34304bee55e"
-};
-// ─────────────────────────────────────────────────────────────────────────
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-  
 import { initializeApp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, collection, addDoc, getDocs,
+import { getFirestore, collection, addDoc, getDocs, doc,
          query, orderBy, deleteDoc, Timestamp, updateDoc }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInAnonymously, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ── HELPERS ──────────────────────────────────────────────────────────────
-const $   = id => document.getElementById(id);
-const val = id => { const e=$( id); return e ? e.value.trim() : ""; };
-const set = (id,v) => { const e=$(id); if(e) e.value = v ?? ""; };
-const txt = (id,v) => { const e=$(id); if(e) e.textContent = v ?? ""; };
-const show = id => $(id)?.classList.remove("hidden");
-const hide = id => $(id)?.classList.add("hidden");
-const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const fmt = n  => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n||0);
-const fmtD = d => d ? new Date(d+'T00:00:00').toLocaleDateString('fr-FR') : '—';
-const today = () => new Date().toISOString().split('T')[0];
-const genId = pre => {
-  const d = new Date();
-  return `${pre}-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
-};
-function toast(msg, type='info', ms=4000) {
-  const el = document.createElement('div');
+const $ = id => document.getElementById(id);
+const v = id => $( id)?.value.trim() ?? '';
+const s = (id,val) => { const e=$(id); if(e) e.value = val ?? ''; };
+const t = (id,val) => { const e=$(id); if(e) e.textContent = val ?? ''; };
+const show = id => $(id)?.classList.remove('hidden');
+const hide = id => $(id)?.classList.add('hidden');
+const esc = x => String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const cur = n => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n||0);
+const fmD = d => d ? new Date(d+'T00:00:00').toLocaleDateString('fr-FR') : '—';
+const td = () => new Date().toISOString().split('T')[0];
+const gid = p => { const d=new Date(); return `${p}-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`; };
+
+function toast(msg,type='info',ms=4000){
+  const el=document.createElement('div');
   el.className=`toast ${type}`;
   el.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span><span>${msg}</span>`;
-  $('toast-container').appendChild(el);
-  setTimeout(()=>el.remove(), ms);
+  $('TC').appendChild(el); setTimeout(()=>el.remove(),ms);
 }
-const encB  = v => v==='Oui'?'<span class="badge badge-green">✅ Oui</span>':v==='Non'?'<span class="badge badge-red">Non</span>':'<span class="badge badge-orange">⏳ Attente</span>';
-const statB = v => !v?'—':v.includes('Reçu')||v.includes('Classé')?`<span class="badge badge-green">${esc(v)}</span>`:v.includes('Manquant')||v.includes('Attente')||v.includes('Introuvable')?`<span class="badge badge-orange">${esc(v)}</span>`:`<span class="badge badge-grey">${esc(v)}</span>`;
-const verifB= v => v==='Oui'?'<span class="badge badge-orange">⚠️ Oui</span>':'<span class="badge badge-green">Non</span>';
-const emptyR= (n,icon,t,s) => `<tr><td colspan="${n}"><div class="empty-state"><div class="empty-icon">${icon}</div><div class="empty-title">${t}</div><div class="empty-sub">${s}</div></div></td></tr>`;
+const encB = v => v==='Oui'?'<span class="badge bgreen">✅ Oui</span>':v==='Non'?'<span class="badge bred">Non</span>':'<span class="badge borg">⏳ Attente</span>';
+const stB  = v => !v?'—':v.includes('Reçu')||v.includes('Classé')?`<span class="badge bgreen">${esc(v)}</span>`:v.includes('Manquant')||v.includes('Attente')||v.includes('Introuvable')?`<span class="badge borg">${esc(v)}</span>`:`<span class="badge bgrey">${esc(v)}</span>`;
+const vfB  = v => v==='Oui'?'<span class="badge borg">⚠️ Oui</span>':'<span class="badge bgreen">Non</span>';
+const emp  = (n,ic,tt,ss) => `<tr><td colspan="${n}"><div class="esp"><div class="ei">${ic}</div><div class="et">${tt}</div><div class="es">${ss}</div></div></td></tr>`;
 
-// ── STATE ─────────────────────────────────────────────────────────────────
-let db, auth, storedHash;
-let DATA = { recettes:[], depenses:[], justifs:[] };
-let editing = { recettes:null, depenses:null, justifs:null };
+// ── STATE ────────────────────────────────────────────────────────────────
+let db, auth;
+let D = { R:[], D:[], J:[] };
+let ed = { R:null, D:null, J:null };
 
-// ── BOOT ──────────────────────────────────────────────────────────────────
-async function boot() {
-  setLoadingText("Connexion à Firebase…");
-  try {
-    // Step 1: bootstrap with projectId only
-    const bApp = initializeApp({ projectId: PROJECT_ID, apiKey:"bootstrap" }, "bootstrap");
-    const bDb  = getFirestore(bApp);
+// ── BOOT ─────────────────────────────────────────────────────────────────
+function setLtxt(x){ t('ltxt',x); }
+function bootErr(msg){
+  const el=$('lerr');
+  el.style.display='block';
+  el.innerHTML=`<strong>❌ Erreur de démarrage</strong>${msg}`;
+  setLtxt('Impossible de charger l\'application.');
+}
 
-    setLoadingText("Lecture de la configuration…");
+try {
+  setLtxt('Initialisation Firebase…');
 
-    // Step 2: fetch config + auth hash in parallel
-    const [cfgSnap, authSnap] = await Promise.all([
-      getDoc(doc(bDb, "_config", "app")),
-      getDoc(doc(bDb, "_config", "auth")),
-    ]);
-
-    if (!cfgSnap.exists()) throw new Error("Document Firestore '_config/app' introuvable.\nVérifiez que ce document existe et que les règles Firestore autorisent sa lecture sans authentification.");
-    if (!authSnap.exists()) throw new Error("Document Firestore '_config/auth' introuvable.\nCréez ce document avec un champ 'passwordHash' (SHA-256 de votre mot de passe).");
-
-    storedHash = authSnap.data().passwordHash;
-    if (!storedHash) throw new Error("Champ 'passwordHash' manquant dans '_config/auth'.");
-
-    // Step 3: init real app
-    setLoadingText("Initialisation de l'application…");
-    const mainApp = initializeApp(cfgSnap.data(), "main");
-    db   = getFirestore(mainApp);
-    auth = getAuth(mainApp);
-
-    // Step 4: listen to auth state
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        revealApp();
-      } else {
-        hide("loading-screen");
-        show("login-screen");
-      }
-    });
-
-  } catch(e) {
-    showBootError(e.message);
+  // Validate config was filled in
+  if (!FIREBASE_CONFIG.projectId || FIREBASE_CONFIG.projectId.includes('PASTE')) {
+    throw new Error('<br>Le fichier HTML contient encore des valeurs placeholder.<br>'
+      +'<code>Ouvrez index.html et remplacez les valeurs PASTE_YOUR_… par votre config Firebase.</code>');
   }
+  if (!PASSWORD_HASH || PASSWORD_HASH.includes('PASTE')) {
+    throw new Error('<br>Le champ PASSWORD_HASH est vide ou contient encore la valeur placeholder.<br>'
+      +'<code>Générez un SHA-256 sur https://emn178.github.io/online-tools/sha256.html</code>');
+  }
+
+  const app = initializeApp(FIREBASE_CONFIG);
+  db   = getFirestore(app);
+  auth = getAuth(app);
+
+  setLtxt('Vérification de l\'authentification…');
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      revealApp();
+    } else {
+      $('LS').classList.add('hidden');
+      $('QS').classList.remove('hidden');
+    }
+  }, err => {
+    bootErr(`<br>Erreur Auth : ${err.message}<code>Activez "Anonymous" dans Firebase Console → Authentication → Sign-in method</code>`);
+  });
+
+} catch(e) {
+  bootErr(e.message || String(e));
 }
 
-function setLoadingText(t) { txt("loading-text", t); }
-
-function showBootError(msg) {
-  const el = $("boot-error");
-  el.style.display = "block";
-  el.innerHTML = `<strong>❌ Erreur de démarrage</strong><br>${msg.replace(/\n/g,'<br>')}<br>
-    <code>PROJECT_ID configuré : "${PROJECT_ID}"</code>
-    <code>Vérifiez aussi : Firestore activé · Règles publiques sur _config · Anonymous Auth activé</code>`;
-  setLoadingText("Impossible de charger l'application.");
-}
-
-// ── AUTH ──────────────────────────────────────────────────────────────────
-async function sha256(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+// ── AUTH ─────────────────────────────────────────────────────────────────
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-window.doLogin = async function() {
-  const pwd = val("pwd-input");
-  if (!pwd) return;
-  $("login-btn").disabled = true;
-  txt("login-btn-text","Vérification…");
-  hide("login-error");
-  try {
-    const h = await sha256(pwd);
-    if (h !== storedHash) throw new Error("wrong");
+window.doLogin = async function(){
+  const pwd=v('pwd'); if(!pwd) return;
+  $('qbtn').disabled=true; t('qbtxt','Vérification…'); hide('qerr');
+  try{
+    const h=await sha256(pwd);
+    if(h!==PASSWORD_HASH) throw new Error('wrong');
     await signInAnonymously(auth);
-    // onAuthStateChanged will call revealApp()
   } catch {
-    show("login-error");
-    $("login-btn").disabled = false;
-    txt("login-btn-text","Accéder");
+    show('qerr'); $('qbtn').disabled=false; t('qbtxt','Accéder');
   }
 };
 
-window.doLogout = async function() {
-  await signOut(auth);
-  location.reload();
-};
+window.doLogout = async function(){ await signOut(auth); location.reload(); };
 
-async function revealApp() {
-  hide("loading-screen");
-  hide("login-screen");
-  const app = $("app");
-  app.style.display = "flex";
-  set("r-date", today()); set("d-date", today()); set("j-date", today());
+async function revealApp(){
+  $('LS').classList.add('hidden');
+  $('QS').classList.add('hidden');
+  const app=$('APP'); app.style.display='flex';
+  s('rdate',td()); s('ddate',td()); s('jdate',td());
   await loadAll();
 }
 
-// ── DATA ──────────────────────────────────────────────────────────────────
-async function loadAll() {
-  await Promise.all([load("recettes"), load("depenses"), load("justifs")]);
-  buildDashboard();
-}
-async function load(col) {
-  const snap = await getDocs(query(collection(db, col), orderBy("date","desc")));
-  DATA[col] = snap.docs.map(d=>({id:d.id,...d.data()}));
-  renders[col]();
+// ── DATA ─────────────────────────────────────────────────────────────────
+async function loadAll(){ await Promise.all([load('R'),load('D'),load('J')]); dash(); }
+async function load(k){
+  const map={R:'recettes',D:'depenses',J:'justifs'};
+  const snap=await getDocs(query(collection(db,map[k]),orderBy('date','desc')));
+  D[k]=snap.docs.map(d=>({id:d.id,...d.data()}));
+  ren[k]();
 }
 
-// ── FORMS ─────────────────────────────────────────────────────────────────
-window.openForm = function(name) {
-  editing[colOf(name)] = null;
-  const map = { recette:['r-ref','FAC'], depense:['d-ref','DEP'], justif:['j-ref','JUST'] };
-  const [fid, pre] = map[name];
-  set(fid, genId(pre));
-  if(name==='recette') set('r-date', today());
-  if(name==='depense') set('d-date', today());
-  if(name==='justif')  set('j-date', today());
-  $("form-"+name).style.display = "block";
-  $("form-"+name).scrollIntoView({behavior:'smooth',block:'start'});
+// ── FORMS ────────────────────────────────────────────────────────────────
+window.openF = function(k){
+  const cfg={r:['FR','rref','FAC','rdate'],d:['FD','dref','DEP','ddate'],j:['FJ','jref','JUST','jdate']};
+  const [fid,rid,pre,did]=cfg[k];
+  ed[k.toUpperCase()]=null;
+  s(rid,gid(pre)); s(did,td());
+  $(fid).style.display='block';
+  $(fid).scrollIntoView({behavior:'smooth',block:'start'});
 };
-window.closeForm = function(name) {
-  $("form-"+name).style.display = "none";
-  resetFormFields(name);
-  editing[colOf(name)] = null;
+window.closeF = function(k){
+  const fid={r:'FR',d:'FD',j:'FJ'}[k];
+  $(fid).style.display='none';
+  ed[k.toUpperCase()]=null;
 };
-const colOf = name => ({recette:'recettes',depense:'depenses',justif:'justifs'})[name];
-
-function resetFormFields(name) {
-  const ids = {
-    recette: ['r-ref','r-client','r-prestation','r-facture','r-ht','r-tva','r-ttc','r-comment','r-mode','r-enc'],
-    depense: ['d-ref','d-subcat','d-fourn','d-desc','d-ttc','d-tva','d-just','d-projet','d-comment','d-cat','d-mode','d-statut','d-verif'],
-    justif:  ['j-ref','j-fourn','j-montant','j-dep','j-fichier','j-link','j-type','j-format','j-statut'],
-  };
-  ids[name]?.forEach(id => set(id, id==='d-verif'?'Non':''));
-}
-
-// ── SAVE ──────────────────────────────────────────────────────────────────
-window.saveRecette = async function() {
-  const ht = parseFloat(val('r-ht'))||0, tva = parseFloat(val('r-tva'))||0;
-  const data = {
-    ref: val('r-ref') || genId('FAC'),
-    date: val('r-date'), client: val('r-client'), prestation: val('r-prestation'),
-    facture: val('r-facture'), ht, tva, ttc: val('r-ttc') ? parseFloat(val('r-ttc')) : ht+tva,
-    mode: val('r-mode'), encaisse: val('r-enc'), commentaire: val('r-comment'),
-  };
-  if (!data.date||!data.client||!data.prestation) { toast('Champs obligatoires manquants *','error'); return; }
-  await upsert('recettes','recette','r-saving', data);
+window.prvLnk = function(){
+  const lnk=v('jlnk');
+  if(lnk&&lnk.startsWith('http')) window.open(lnk,'_blank','noopener');
+  else toast('Saisissez d\'abord un lien OneDrive valide (https://…)','error');
 };
 
-window.saveDepense = async function() {
-  const data = {
-    ref: val('d-ref') || genId('DEP'),
-    date: val('d-date'), categorie: val('d-cat'), souscat: val('d-subcat'),
-    fournisseur: val('d-fourn'), description: val('d-desc'),
-    ttc: parseFloat(val('d-ttc'))||0, tva: parseFloat(val('d-tva'))||0,
-    mode: val('d-mode'), nojustif: val('d-just'), projet: val('d-projet'),
-    statut: val('d-statut'), averifier: val('d-verif'), commentaire: val('d-comment'),
-  };
-  if (!data.date||!data.categorie||!data.fournisseur) { toast('Champs obligatoires manquants *','error'); return; }
-  await upsert('depenses','depense','d-saving', data);
+// ── SAVE ─────────────────────────────────────────────────────────────────
+window.saveR = async function(){
+  const ht=parseFloat(v('rht'))||0, tva=parseFloat(v('rtva'))||0;
+  const data={ref:v('rref')||gid('FAC'),date:v('rdate'),client:v('rcli'),prestation:v('rpre'),
+    facture:v('rfac'),ht,tva,ttc:v('rttc')?parseFloat(v('rttc')):ht+tva,
+    mode:v('rmod'),encaisse:v('renc'),commentaire:v('rcom')};
+  if(!data.date||!data.client||!data.prestation){toast('Champs obligatoires manquants *','error');return;}
+  await ups('recettes','R','rsav',data); closeF('r');
+};
+window.saveD = async function(){
+  const data={ref:v('dref')||gid('DEP'),date:v('ddate'),categorie:v('dcat'),souscat:v('dsub'),
+    fournisseur:v('dfou'),description:v('ddesc'),ttc:parseFloat(v('dttc'))||0,
+    tva:parseFloat(v('dtva'))||0,mode:v('dmod'),nojustif:v('djus'),
+    projet:v('dproj'),statut:v('dstat'),averifier:v('dver'),commentaire:v('dcom')};
+  if(!data.date||!data.categorie||!data.fournisseur){toast('Champs obligatoires manquants *','error');return;}
+  await ups('depenses','D','dsav',data); closeF('d');
+};
+window.saveJ = async function(){
+  const lnk=v('jlnk').trim();
+  if(lnk&&!lnk.startsWith('http')){toast('Le lien doit commencer par https://','error');return;}
+  const data={ref:v('jref')||gid('JUST'),date:v('jdate'),type:v('jtype'),fourn:v('jfou'),
+    montant:parseFloat(v('jmnt'))||0,depense:v('jdep'),format:v('jfmt'),
+    fichier:v('jfic'),onedriveLink:lnk,statut:v('jstat')};
+  if(!data.date||!data.fourn){toast('Champs obligatoires manquants *','error');return;}
+  await ups('justifs','J','jsav',data); closeF('j');
 };
 
-window.saveJustif = async function() {
-  const link = val('j-link').trim();
-  if (link && !link.startsWith('http')) { toast('Le lien OneDrive doit commencer par https://','error'); return; }
-  const data = {
-    ref: val('j-ref') || genId('JUST'),
-    date: val('j-date'), type: val('j-type'), fourn: val('j-fourn'),
-    montant: parseFloat(val('j-montant'))||0, depense: val('j-dep'),
-    format: val('j-format'), fichier: val('j-fichier'),
-    onedriveLink: link, statut: val('j-statut'),
-  };
-  if (!data.date||!data.fourn) { toast('Champs obligatoires manquants *','error'); return; }
-  await upsert('justifs','justif','j-saving', data);
-};
-
-async function upsert(col, formName, savingId, data) {
-  show(savingId);
-  try {
-    const id = editing[col];
-    data.updatedAt = Timestamp.now();
-    if (id) {
-      await updateDoc(doc(db, col, id), data);
-      toast('Mise à jour effectuée ✓','success');
-    } else {
-      data.createdAt = Timestamp.now();
-      await addDoc(collection(db, col), data);
-      toast('Enregistrement sauvegardé ✓','success');
-    }
-    editing[col] = null;
-    closeForm(formName);
-    await load(col);
-    buildDashboard();
-  } catch(e) {
-    toast('Erreur Firebase : '+e.message,'error');
-  } finally {
-    hide(savingId);
-  }
+async function ups(col,k,savId,data){
+  show(savId);
+  try{
+    data.updatedAt=Timestamp.now();
+    const id=ed[k];
+    if(id){ await updateDoc(doc(db,col,id),data); toast('Mise à jour ✓','success'); }
+    else{ data.createdAt=Timestamp.now(); await addDoc(collection(db,col),data); toast('Sauvegardé ✓','success'); }
+    ed[k]=null;
+    await load(k); dash();
+  } catch(e){ toast('Erreur Firebase : '+e.message,'error'); }
+  finally{ hide(savId); }
 }
 
 // ── DELETE ────────────────────────────────────────────────────────────────
-window.delRec = async function(col, id) {
-  if (!confirm('Supprimer cet enregistrement ? Action irréversible.')) return;
-  try {
-    await deleteDoc(doc(db, col, id));
-    toast('Supprimé ✓','success');
-    await load(col); buildDashboard();
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
+window.delR = async function(col,k,id){
+  if(!confirm('Supprimer ? Action irréversible.')) return;
+  try{ await deleteDoc(doc(db,col,id)); toast('Supprimé ✓','success'); await load(k); dash(); }
+  catch(e){ toast('Erreur : '+e.message,'error'); }
 };
 
 // ── EDIT ──────────────────────────────────────────────────────────────────
-window.editRec = function(col, id) {
-  const item = DATA[col].find(d=>d.id===id);
-  if (!item) return;
-  editing[col] = id;
-  const name = {recettes:'recette',depenses:'depense',justifs:'justif'}[col];
-  if (col==='recettes') {
-    set('r-ref',item.ref||''); set('r-date',item.date||''); set('r-client',item.client||'');
-    set('r-prestation',item.prestation||''); set('r-facture',item.facture||'');
-    set('r-ht',item.ht||''); set('r-tva',item.tva||''); set('r-ttc',item.ttc||'');
-    set('r-mode',item.mode||''); set('r-enc',item.encaisse||''); set('r-comment',item.commentaire||'');
-  } else if (col==='depenses') {
-    set('d-ref',item.ref||''); set('d-date',item.date||''); set('d-cat',item.categorie||'');
-    set('d-subcat',item.souscat||''); set('d-fourn',item.fournisseur||'');
-    set('d-desc',item.description||''); set('d-ttc',item.ttc||''); set('d-tva',item.tva||'');
-    set('d-mode',item.mode||''); set('d-just',item.nojustif||''); set('d-projet',item.projet||'');
-    set('d-statut',item.statut||''); set('d-verif',item.averifier||'Non'); set('d-comment',item.commentaire||'');
+window.editR = function(k,id){
+  const item=D[k].find(x=>x.id===id); if(!item) return;
+  ed[k]=id;
+  if(k==='R'){
+    s('rref',item.ref||'');s('rdate',item.date||'');s('rcli',item.client||'');
+    s('rpre',item.prestation||'');s('rfac',item.facture||'');s('rht',item.ht||'');
+    s('rtva',item.tva||'');s('rttc',item.ttc||'');s('rmod',item.mode||'');
+    s('renc',item.encaisse||'');s('rcom',item.commentaire||'');
+    $('FR').style.display='block'; $('FR').scrollIntoView({behavior:'smooth',block:'start'});
+  } else if(k==='D'){
+    s('dref',item.ref||'');s('ddate',item.date||'');s('dcat',item.categorie||'');
+    s('dsub',item.souscat||'');s('dfou',item.fournisseur||'');s('ddesc',item.description||'');
+    s('dttc',item.ttc||'');s('dtva',item.tva||'');s('dmod',item.mode||'');
+    s('djus',item.nojustif||'');s('dproj',item.projet||'');s('dstat',item.statut||'');
+    s('dver',item.averifier||'Non');s('dcom',item.commentaire||'');
+    $('FD').style.display='block'; $('FD').scrollIntoView({behavior:'smooth',block:'start'});
   } else {
-    set('j-ref',item.ref||''); set('j-date',item.date||''); set('j-type',item.type||'');
-    set('j-fourn',item.fourn||''); set('j-montant',item.montant||''); set('j-dep',item.depense||'');
-    set('j-format',item.format||''); set('j-fichier',item.fichier||'');
-    set('j-link',item.onedriveLink||''); set('j-statut',item.statut||'');
+    s('jref',item.ref||'');s('jdate',item.date||'');s('jtype',item.type||'');
+    s('jfou',item.fourn||'');s('jmnt',item.montant||'');s('jdep',item.depense||'');
+    s('jfmt',item.format||'');s('jfic',item.fichier||'');s('jlnk',item.onedriveLink||'');
+    s('jstat',item.statut||'');
+    $('FJ').style.display='block'; $('FJ').scrollIntoView({behavior:'smooth',block:'start'});
   }
-  $("form-"+name).style.display = "block";
-  $("form-"+name).scrollIntoView({behavior:'smooth',block:'start'});
   toast('Mode édition — modifiez puis sauvegardez','info');
 };
 
 // ── RENDER ────────────────────────────────────────────────────────────────
-const renders = {
-  recettes() {
-    const tb=$('r-tb');
-    txt('r-count', DATA.recettes.length+' entrées');
-    if (!DATA.recettes.length) { tb.innerHTML=emptyR(10,'💰','Aucune recette','Cliquez sur "+ Nouvelle recette"'); return; }
-    tb.innerHTML = DATA.recettes.map(r=>`
-      <tr data-s="${esc(r.ref)} ${esc(r.client)} ${esc(r.prestation)} ${esc(r.date)}">
-        <td><span class="badge badge-sea mono" style="font-size:10px">${esc(r.ref||'—')}</span></td>
-        <td>${fmtD(r.date)}</td>
-        <td><strong>${esc(r.client||'—')}</strong></td>
-        <td class="grey-sm">${esc(r.prestation||'—')}</td>
-        <td><span class="badge badge-grey" style="font-size:10px">${esc(r.facture||'—')}</span></td>
-        <td class="td-amount pos">${fmt(r.ht)}</td>
-        <td class="td-amount">${fmt(r.ttc)}</td>
-        <td class="grey-sm">${esc(r.mode||'—')}</td>
-        <td>${encB(r.encaisse)}</td>
-        <td><div class="act">
-          <button class="btn btn-ghost btn-sm" onclick="editRec('recettes','${r.id}')">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="delRec('recettes','${r.id}')">🗑</button>
-        </div></td>
-      </tr>`).join('');
+const ren = {
+  R(){
+    const tb=$('Rtb'); t('rcnt',D.R.length+' entrées');
+    if(!D.R.length){tb.innerHTML=emp(10,'💰','Aucune recette','Cliquez sur "+ Nouvelle recette"');return;}
+    tb.innerHTML=D.R.map(r=>`<tr data-s="${esc(r.ref)} ${esc(r.client)} ${esc(r.prestation)} ${esc(r.date)}">
+      <td><span class="badge bsea mono" style="font-size:10px">${esc(r.ref||'—')}</span></td>
+      <td>${fmD(r.date)}</td><td><strong>${esc(r.client||'—')}</strong></td>
+      <td class="gsm">${esc(r.prestation||'—')}</td>
+      <td><span class="badge bgrey" style="font-size:10px">${esc(r.facture||'—')}</span></td>
+      <td class="tam pos">${cur(r.ht)}</td><td class="tam">${cur(r.ttc)}</td>
+      <td class="gsm">${esc(r.mode||'—')}</td><td>${encB(r.encaisse)}</td>
+      <td><div class="act">
+        <button class="btn bg bsm" onclick="editR('R','${r.id}')">✏️</button>
+        <button class="btn bd bsm" onclick="delR('recettes','R','${r.id}')">🗑</button>
+      </div></td></tr>`).join('');
   },
-  depenses() {
-    const tb=$('d-tb');
-    txt('d-count', DATA.depenses.length+' entrées');
-    if (!DATA.depenses.length) { tb.innerHTML=emptyR(11,'💳','Aucune dépense','Cliquez sur "+ Nouvelle dépense"'); return; }
-    tb.innerHTML = DATA.depenses.map(d=>`
-      <tr data-s="${esc(d.ref)} ${esc(d.categorie)} ${esc(d.fournisseur)} ${esc(d.date)}">
-        <td><span class="badge badge-sea mono" style="font-size:10px">${esc(d.ref||'—')}</span></td>
-        <td>${fmtD(d.date)}</td>
-        <td><span class="badge badge-sand" style="font-size:10px">${esc(d.categorie||'—')}</span></td>
-        <td><strong>${esc(d.fournisseur||'—')}</strong></td>
-        <td class="grey-sm">${esc(d.description||'—')}</td>
-        <td class="td-amount neg">${fmt(d.ttc)}</td>
-        <td class="grey-sm">${esc(d.mode||'—')}</td>
-        <td class="mono" style="font-size:11px">${esc(d.nojustif||'—')}</td>
-        <td>${statB(d.statut)}</td>
-        <td>${verifB(d.averifier)}</td>
-        <td><div class="act">
-          <button class="btn btn-ghost btn-sm" onclick="editRec('depenses','${d.id}')">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="delRec('depenses','${d.id}')">🗑</button>
-        </div></td>
-      </tr>`).join('');
+  D(){
+    const tb=$('Dtb'); t('dcnt',D.D.length+' entrées');
+    if(!D.D.length){tb.innerHTML=emp(11,'💳','Aucune dépense','Cliquez sur "+ Nouvelle dépense"');return;}
+    tb.innerHTML=D.D.map(d=>`<tr data-s="${esc(d.ref)} ${esc(d.categorie)} ${esc(d.fournisseur)} ${esc(d.date)}">
+      <td><span class="badge bsea mono" style="font-size:10px">${esc(d.ref||'—')}</span></td>
+      <td>${fmD(d.date)}</td>
+      <td><span class="badge bsand" style="font-size:10px">${esc(d.categorie||'—')}</span></td>
+      <td><strong>${esc(d.fournisseur||'—')}</strong></td>
+      <td class="gsm">${esc(d.description||'—')}</td>
+      <td class="tam neg">${cur(d.ttc)}</td><td class="gsm">${esc(d.mode||'—')}</td>
+      <td class="mono" style="font-size:11px">${esc(d.nojustif||'—')}</td>
+      <td>${stB(d.statut)}</td><td>${vfB(d.averifier)}</td>
+      <td><div class="act">
+        <button class="btn bg bsm" onclick="editR('D','${d.id}')">✏️</button>
+        <button class="btn bd bsm" onclick="delR('depenses','D','${d.id}')">🗑</button>
+      </div></td></tr>`).join('');
   },
-  justifs() {
-    const tb=$('j-tb');
-    txt('j-count', DATA.justifs.length+' entrées');
-    if (!DATA.justifs.length) { tb.innerHTML=emptyR(11,'📎','Aucun justificatif','Cliquez sur "+ Nouveau justificatif"'); return; }
-    tb.innerHTML = DATA.justifs.map(j=>`
-      <tr data-s="${esc(j.ref)} ${esc(j.fourn)} ${esc(j.type)} ${esc(j.date)}">
-        <td><span class="badge badge-sea mono" style="font-size:10px">${esc(j.ref||'—')}</span></td>
-        <td>${fmtD(j.date)}</td>
-        <td class="grey-sm">${esc(j.type||'—')}</td>
-        <td><strong>${esc(j.fourn||'—')}</strong></td>
-        <td class="td-amount">${fmt(j.montant)}</td>
-        <td class="grey-sm mono" style="font-size:11px">${esc(j.depense||'—')}</td>
-        <td class="grey-sm">${esc(j.format||'—')}</td>
-        <td class="grey-sm truncate" title="${esc(j.fichier||'')}">${esc(j.fichier||'—')}</td>
-        <td>${j.onedriveLink ? `<a href="${esc(j.onedriveLink)}" target="_blank" rel="noopener" class="btn btn-link btn-sm">🔗 Ouvrir</a>` : '<span class="grey-sm">—</span>'}</td>
-        <td>${statB(j.statut)}</td>
-        <td><div class="act">
-          <button class="btn btn-ghost btn-sm" onclick="editRec('justifs','${j.id}')">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="delRec('justifs','${j.id}')">🗑</button>
-        </div></td>
-      </tr>`).join('');
-  },
+  J(){
+    const tb=$('Jtb'); t('jcnt',D.J.length+' entrées');
+    if(!D.J.length){tb.innerHTML=emp(11,'📎','Aucun justificatif','Cliquez sur "+ Nouveau justificatif"');return;}
+    tb.innerHTML=D.J.map(j=>`<tr data-s="${esc(j.ref)} ${esc(j.fourn)} ${esc(j.type)} ${esc(j.date)}">
+      <td><span class="badge bsea mono" style="font-size:10px">${esc(j.ref||'—')}</span></td>
+      <td>${fmD(j.date)}</td><td class="gsm">${esc(j.type||'—')}</td>
+      <td><strong>${esc(j.fourn||'—')}</strong></td>
+      <td class="tam">${cur(j.montant)}</td>
+      <td class="mono gsm" style="font-size:11px">${esc(j.depense||'—')}</td>
+      <td class="gsm">${esc(j.format||'—')}</td>
+      <td class="gsm trunc" title="${esc(j.fichier||'')}">${esc(j.fichier||'—')}</td>
+      <td>${j.onedriveLink?`<a href="${esc(j.onedriveLink)}" target="_blank" rel="noopener" class="btn bl bsm">🔗 Ouvrir</a>`:'<span class="gsm">—</span>'}</td>
+      <td>${stB(j.statut)}</td>
+      <td><div class="act">
+        <button class="btn bg bsm" onclick="editR('J','${j.id}')">✏️</button>
+        <button class="btn bd bsm" onclick="delR('justifs','J','${j.id}')">🗑</button>
+      </div></td></tr>`).join('');
+  }
 };
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────
-function buildDashboard() {
-  const caA = DATA.recettes.reduce((s,r)=>s+(r.ttc||0),0);
-  const enc = DATA.recettes.filter(r=>r.encaisse==='Oui').reduce((s,r)=>s+(r.ht||0),0);
-  const dep = DATA.depenses.reduce((s,d)=>s+(d.ttc||0),0);
-  const tr  = enc-dep;
-  const miss= DATA.depenses.filter(d=>d.statut?.includes('Manquant')).length
-            + DATA.justifs.filter(j=>j.statut?.includes('Attente')||j.statut?.includes('Introuvable')).length;
-  const cm  = new Date().getMonth();
-  const caMois = DATA.recettes.filter(r=>r.date&&new Date(r.date).getMonth()===cm).reduce((s,r)=>s+(r.ttc||0),0);
-  const dMois  = DATA.depenses.filter(d=>d.date&&new Date(d.date).getMonth()===cm).reduce((s,d)=>s+(d.ttc||0),0);
-
-  txt('kpi-ca',fmt(caMois)); txt('kpi-dep',fmt(dMois)); txt('kpi-justif',miss);
-  txt('d-ca-annual',fmt(caA)); txt('d-encaisse',fmt(enc)); txt('d-depenses',fmt(dep));
-  const te=$('d-treso'); te.textContent=fmt(tr); te.className='synth-value '+(tr>=0?'positive':'negative');
-  txt('d-missing',miss); txt('d-nb-fac',DATA.recettes.length);
-
-  const recent=[...DATA.recettes.slice(0,6).map(r=>({...r,_t:'r'})),...DATA.depenses.slice(0,6).map(d=>({...d,_t:'d'}))]
+function dash(){
+  const caA=D.R.reduce((s,r)=>s+(r.ttc||0),0);
+  const enc=D.R.filter(r=>r.encaisse==='Oui').reduce((s,r)=>s+(r.ht||0),0);
+  const dep=D.D.reduce((s,d)=>s+(d.ttc||0),0);
+  const tr=enc-dep;
+  const miss=D.D.filter(d=>d.statut?.includes('Manquant')).length
+           +D.J.filter(j=>j.statut?.includes('Attente')||j.statut?.includes('Introuvable')).length;
+  const cm=new Date().getMonth();
+  t('kca',cur(D.R.filter(r=>r.date&&new Date(r.date).getMonth()===cm).reduce((s,r)=>s+(r.ttc||0),0)));
+  t('kdep',cur(D.D.filter(d=>d.date&&new Date(d.date).getMonth()===cm).reduce((s,d)=>s+(d.ttc||0),0)));
+  t('kjust',miss);
+  t('dca',cur(caA));t('denc',cur(enc));t('ddep',cur(dep));
+  const te=$('dtr');te.textContent=cur(tr);te.className='sval '+(tr>=0?'pos':'neg');
+  t('dmiss',miss);t('dnb',D.R.length);
+  const rec=[...D.R.slice(0,6).map(r=>({...r,_t:'r'})),...D.D.slice(0,6).map(d=>({...d,_t:'d'}))]
     .sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,10);
-  txt('recent-count',recent.length+' entrées récentes');
-  const rb=$('recent-tb');
-  if(!recent.length){rb.innerHTML=emptyR(7,'📋','Aucune activité','Commencez par saisir une recette ou une dépense');return;}
-  rb.innerHTML=recent.map(r=>{
+  t('reccnt',rec.length+' entrées récentes');
+  const rb=$('rtb');
+  if(!rec.length){rb.innerHTML=emp(7,'📋','Aucune activité','Commencez par saisir une recette ou une dépense');return;}
+  rb.innerHTML=rec.map(r=>{
     const isR=r._t==='r';
     return`<tr>
-      <td><span class="badge badge-sea mono" style="font-size:10px">${esc(r.ref||'—')}</span></td>
-      <td>${fmtD(r.date)}</td>
-      <td>${isR?'<span class="badge badge-green">Recette</span>':'<span class="badge badge-orange">Dépense</span>'}</td>
-      <td class="grey-sm">${esc((isR?r.prestation:r.description)||'—')}</td>
+      <td><span class="badge bsea mono" style="font-size:10px">${esc(r.ref||'—')}</span></td>
+      <td>${fmD(r.date)}</td>
+      <td>${isR?'<span class="badge bgreen">Recette</span>':'<span class="badge borg">Dépense</span>'}</td>
+      <td class="gsm">${esc((isR?r.prestation:r.description)||'—')}</td>
       <td><strong>${esc((isR?r.client:r.fournisseur)||'—')}</strong></td>
-      <td class="td-amount ${isR?'pos':'neg'}">${isR?'+':'−'} ${fmt(r.ttc)}</td>
-      <td>${isR?encB(r.encaisse):statB(r.statut)}</td>
+      <td class="tam ${isR?'pos':'neg'}">${isR?'+':'−'} ${cur(r.ttc)}</td>
+      <td>${isR?encB(r.encaisse):stB(r.statut)}</td>
     </tr>`;
   }).join('');
 }
 
 // ── SYNTHÈSE ──────────────────────────────────────────────────────────────
-window.buildSynthese = function() {
-  const caA=DATA.recettes.reduce((s,r)=>s+(r.ttc||0),0);
-  const enc=DATA.recettes.filter(r=>r.encaisse==='Oui').reduce((s,r)=>s+(r.ht||0),0);
-  const dep=DATA.depenses.reduce((s,d)=>s+(d.ttc||0),0);
+window.buildSynthese = function(){
+  const caA=D.R.reduce((s,r)=>s+(r.ttc||0),0);
+  const enc=D.R.filter(r=>r.encaisse==='Oui').reduce((s,r)=>s+(r.ht||0),0);
+  const dep=D.D.reduce((s,d)=>s+(d.ttc||0),0);
   const tr=enc-dep;
-  txt('s-ca',fmt(caA)); txt('s-enc',fmt(enc)); txt('s-dep',fmt(dep));
-  const te=$('s-treso'); te.textContent=fmt(tr); te.className='synth-value '+(tr>=0?'positive':'negative');
-
+  t('sca',cur(caA));t('senc',cur(enc));t('sdep',cur(dep));
+  const te=$('str');te.textContent=cur(tr);te.className='sval '+(tr>=0?'pos':'neg');
   const mois=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const mCA=Array(12).fill(0);
-  DATA.recettes.forEach(r=>{if(r.date)mCA[new Date(r.date).getMonth()]+=(r.ttc||0);});
-  const maxCA=Math.max(...mCA,1);
-  $('monthly-bars').innerHTML=mois.map((m,i)=>{
-    const pct=((mCA[i]/maxCA)*100).toFixed(1);
-    const nb=DATA.recettes.filter(r=>r.date&&new Date(r.date).getMonth()===i).length;
-    return`<div class="month-row"><div class="month-name">${m}${mCA[i]===maxCA&&maxCA>0?' ⭐':''}</div><div class="month-bar-wrap"><div class="month-bar" style="width:${pct}%"></div></div><div class="month-amount">${mCA[i]>0?fmt(mCA[i]):'—'}</div><div class="month-count">${nb>0?nb+' fac.':''}</div></div>`;
+  D.R.forEach(r=>{if(r.date)mCA[new Date(r.date).getMonth()]+=(r.ttc||0);});
+  const mx=Math.max(...mCA,1);
+  $('mbars').innerHTML=mois.map((m,i)=>{
+    const pct=((mCA[i]/mx)*100).toFixed(1);
+    const nb=D.R.filter(r=>r.date&&new Date(r.date).getMonth()===i).length;
+    return`<div class="mr"><div class="mn">${m}${mCA[i]===mx&&mx>0?' ⭐':''}</div><div class="mbw"><div class="mb" style="width:${pct}%"></div></div><div class="ma">${mCA[i]>0?cur(mCA[i]):'—'}</div><div class="mc">${nb>0?nb+' fac.':''}</div></div>`;
   }).join('');
-
-  const cats={};
-  DATA.depenses.forEach(d=>{if(d.categorie)cats[d.categorie]=(cats[d.categorie]||0)+(d.ttc||0);});
-  const total=Object.values(cats).reduce((a,b)=>a+b,0)||1;
-  const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
-  $('cat-tb').innerHTML=sorted.length
-    ?sorted.map(([c,v])=>`<tr><td><span class="badge badge-sea">${esc(c)}</span></td><td class="td-amount">${fmt(v)}</td><td class="td-amount grey-sm">${((v/total)*100).toFixed(1)} %</td></tr>`).join('')
-    :`<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--grey-500)">Aucune dépense</td></tr>`;
+  const cats={};D.D.forEach(d=>{if(d.categorie)cats[d.categorie]=(cats[d.categorie]||0)+(d.ttc||0);});
+  const tot=Object.values(cats).reduce((a,b)=>a+b,0)||1;
+  $('cattb').innerHTML=Object.entries(cats).sort((a,b)=>b[1]-a[1])
+    .map(([c,val])=>`<tr><td><span class="badge bsea">${esc(c)}</span></td><td class="tam">${cur(val)}</td><td class="tam gsm">${((val/tot)*100).toFixed(1)} %</td></tr>`).join('')
+    ||`<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--g500)">Aucune dépense</td></tr>`;
 };
 
 // ── NAV ───────────────────────────────────────────────────────────────────
-window.showPanel = function(name) {
+window.nav = function(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   $('panel-'+name).classList.add('active');
   const idx=['dashboard','recettes','depenses','justifs','synthese'].indexOf(name);
-  document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
+  document.querySelectorAll('.ni')[idx]?.classList.add('active');
   if(name==='synthese') window.buildSynthese();
 };
 
-window.filterTb = function(tbId, q) {
-  $( tbId).querySelectorAll('tr[data-s]').forEach(r=>{
+window.filt = function(tbId,q){
+  $(tbId).querySelectorAll('tr[data-s]').forEach(r=>{
     r.style.display=r.dataset.s.toLowerCase().includes(q.toLowerCase())?'':'none';
   });
 };
 
 // ── EXPORT ────────────────────────────────────────────────────────────────
-window.exportData = function() {
+window.exportData = function(){
   const rows=[
     ['=== RECETTES ==='],
     ['Réf.','Date','Client','Prestation','Facture','HT','TVA','TTC','Mode','Encaissé','Commentaire'],
-    ...DATA.recettes.map(r=>[r.ref,r.date,r.client,r.prestation,r.facture,r.ht,r.tva,r.ttc,r.mode,r.encaisse,r.commentaire]),
-    [],
-    ['=== DÉPENSES ==='],
+    ...D.R.map(r=>[r.ref,r.date,r.client,r.prestation,r.facture,r.ht,r.tva,r.ttc,r.mode,r.encaisse,r.commentaire]),
+    [],['=== DÉPENSES ==='],
     ['Réf.','Date','Catégorie','Fournisseur','Description','TTC','TVA','Mode','Justif.','Statut','À vérifier'],
-    ...DATA.depenses.map(d=>[d.ref,d.date,d.categorie,d.fournisseur,d.description,d.ttc,d.tva,d.mode,d.nojustif,d.statut,d.averifier]),
-    [],
-    ['=== JUSTIFICATIFS ==='],
-    ['Réf.','Date','Type','Fournisseur','Montant','Lié à','Format','Fichier','Lien OneDrive','Statut'],
-    ...DATA.justifs.map(j=>[j.ref,j.date,j.type,j.fourn,j.montant,j.depense,j.format,j.fichier,j.onedriveLink,j.statut]),
+    ...D.D.map(d=>[d.ref,d.date,d.categorie,d.fournisseur,d.description,d.ttc,d.tva,d.mode,d.nojustif,d.statut,d.averifier]),
+    [],['=== JUSTIFICATIFS ==='],
+    ['Réf.','Date','Type','Fournisseur','Montant','Lié à','Format','Fichier','OneDrive','Statut'],
+    ...D.J.map(j=>[j.ref,j.date,j.type,j.fourn,j.montant,j.depense,j.format,j.fichier,j.onedriveLink,j.statut]),
   ];
-  const tsv=rows.map(r=>r.join('\t')).join('\n');
   const a=document.createElement('a');
-  a.href='data:text/tab-separated-values;charset=utf-8,\uFEFF'+encodeURIComponent(tsv);
+  a.href='data:text/tab-separated-values;charset=utf-8,\uFEFF'+encodeURIComponent(rows.map(r=>r.join('\t')).join('\n'));
   a.download=`Gestion_CG_${new Date().toISOString().slice(0,10)}.tsv`;
-  a.click();
-  toast('Export téléchargé ✓','success');
+  a.click(); toast('Export téléchargé ✓','success');
 };
 
-// ── ONEDRIVE LINK PREVIEW ─────────────────────────────────────────────────
-window.previewLink = function() {
-  const v=val('j-link');
-  if(v&&v.startsWith('http')) window.open(v,'_blank','noopener');
-  else toast('Saisissez d\'abord un lien OneDrive valide (https://…)','error');
-};
-
-// ── TTC AUTO-CALC ─────────────────────────────────────────────────────────
-['r-ht','r-tva'].forEach(id=>{
+// ── WIRING ────────────────────────────────────────────────────────────────
+['rht','rtva'].forEach(id=>{
   $(id)?.addEventListener('input',()=>{
-    const ht=parseFloat(val('r-ht'))||0, tva=parseFloat(val('r-tva'))||0;
-    set('r-ttc',(ht+tva).toFixed(2));
+    const ht=parseFloat(v('rht'))||0,tva=parseFloat(v('rtva'))||0;
+    s('rttc',(ht+tva).toFixed(2));
   });
 });
-
-// ── ENTER KEY ON LOGIN ─────────────────────────────────────────────────────
-$('pwd-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')window.doLogin();});
-
-// ── START ─────────────────────────────────────────────────────────────────
-boot();
+$('pwd')?.addEventListener('keydown',e=>{if(e.key==='Enter')window.doLogin();});
 </script>
 </body>
 </html>
