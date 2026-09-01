@@ -20,7 +20,7 @@ import { initializeApp } from "firebase/app";
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
-const firebaseConfig = {
+const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCYRK4wqehW0TNQij2Z-THgtUaf8bDHyNE",
   authDomain: "suivi-financier-695df.firebaseapp.com",
   projectId: "suivi-financier-695df",
@@ -30,7 +30,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(FIREBASE_CONFIG);
   // SHA-256 hash of your chosen password.
   // Generate at: https://emn178.github.io/online-tools/sha256.html
   const PASSWORD_HASH = "dce3a6f7ae3d659d3d0d31fc7dbd8d8ad7e8a0cd492dee235234bea8f974c665";
